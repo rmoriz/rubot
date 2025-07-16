@@ -139,14 +139,57 @@ def main(date, output, prompt, model, config, no_cache, cache_dir, temperature, 
             markdown_content, prompt, model, temperature, max_tokens, verbose
         )
 
-        # Step 4: Output raw LLM response to STDOUT
-        if output:
-            with open(output, 'w', encoding='utf-8') as f:
-                f.write(llm_response)
-            click.echo(f"Raw LLM response saved to: {output}", err=True)
-        else:
-            # Output raw LLM JSON response to STDOUT (1:1 without modification)
-            print(llm_response)
+        # Step 4: Extract and output JSON content from LLM response
+        try:
+            # Parse OpenRouter response
+            import json
+            openrouter_response = json.loads(llm_response)
+            
+            # Extract the actual content from OpenRouter response
+            if 'choices' in openrouter_response and openrouter_response['choices']:
+                actual_content = openrouter_response['choices'][0]['message']['content']
+                
+                # Try to parse the content as JSON
+                try:
+                    content_json = json.loads(actual_content)
+                    # Output the parsed JSON content
+                    formatted_json = json.dumps(content_json, indent=2, ensure_ascii=False)
+                    
+                    if output:
+                        with open(output, 'w', encoding='utf-8') as f:
+                            f.write(formatted_json)
+                        click.echo(f"Extracted JSON content saved to: {output}", err=True)
+                    else:
+                        # Output extracted JSON to STDOUT
+                        print(formatted_json)
+                        
+                except json.JSONDecodeError:
+                    # Content is not valid JSON, output as-is
+                    click.echo("Warning: LLM content is not valid JSON, outputting as text", err=True)
+                    if output:
+                        with open(output, 'w', encoding='utf-8') as f:
+                            f.write(actual_content)
+                        click.echo(f"LLM text content saved to: {output}", err=True)
+                    else:
+                        print(actual_content)
+            else:
+                # No choices in response, output raw response
+                if output:
+                    with open(output, 'w', encoding='utf-8') as f:
+                        f.write(llm_response)
+                    click.echo(f"Raw LLM response saved to: {output}", err=True)
+                else:
+                    print(llm_response)
+                    
+        except json.JSONDecodeError:
+            # Fallback: output raw response if parsing fails
+            click.echo("Warning: Could not parse OpenRouter response, outputting raw response", err=True)
+            if output:
+                with open(output, 'w', encoding='utf-8') as f:
+                    f.write(llm_response)
+                click.echo(f"Raw LLM response saved to: {output}", err=True)
+            else:
+                print(llm_response)
         
         # Optional: Parse and show analysis summary on STDERR if verbose
         if verbose:
