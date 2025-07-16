@@ -29,34 +29,49 @@ def main():
     
     # Step 2: Convert to Markdown
     print("Converting to Markdown...")
-    markdown_content = convert_pdf_to_markdown(pdf_path)
+    markdown_content = convert_pdf_to_markdown(pdf_path, use_cache=True, verbose=True)
     
     # Step 3: Process with LLM
     print("Processing with LLM...")
     llm_response = process_with_openrouter(
         markdown_content,
         config.default_prompt_file,
-        config.default_model
+        config.default_model,
+        temperature=0.1,
+        max_tokens=4000,
+        verbose=True
     )
     
-    # Step 4: Parse result
-    analysis = RathausUmschauAnalysis.from_llm_response(
-        llm_response,
-        date,
-        config.default_model
-    )
+    # Step 4: Output raw response (like CLI tool does now)
+    print("\n=== RAW OPENROUTER RESPONSE ===")
+    print(llm_response)
     
-    # Output results
-    print(f"\nAnalysis Summary:")
-    print(f"- {len(analysis.announcements)} announcements")
-    print(f"- {len(analysis.events)} events")
-    print(f"- {len(analysis.important_dates)} important dates")
+    # Optional: Parse for analysis (like CLI tool does in verbose mode)
+    try:
+        analysis = RathausUmschauAnalysis.from_llm_response(
+            llm_response,
+            date,
+            config.default_model
+        )
+        
+        print(f"\n=== ANALYSIS SUMMARY ===")
+        print(f"- Summary length: {len(analysis.summary)} characters")
+        print(f"- {len(analysis.announcements)} announcements")
+        print(f"- {len(analysis.events)} events")
+        print(f"- {len(analysis.important_dates)} important dates")
+        
+        # Save parsed analysis to file
+        with open(f"rathaus_umschau_{date}_parsed.json", "w") as f:
+            f.write(analysis.to_json())
+        print(f"\nParsed analysis saved to rathaus_umschau_{date}_parsed.json")
+        
+    except Exception as e:
+        print(f"\nNote: Could not parse response as structured data: {e}")
     
-    # Save to file
-    with open(f"rathaus_umschau_{date}.json", "w") as f:
-        f.write(analysis.to_json())
-    
-    print(f"\nResults saved to rathaus_umschau_{date}.json")
+    # Save raw response to file (like CLI tool does)
+    with open(f"rathaus_umschau_{date}_raw.json", "w") as f:
+        f.write(llm_response)
+    print(f"Raw response saved to rathaus_umschau_{date}_raw.json")
 
 if __name__ == "__main__":
     main()
