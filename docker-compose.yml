@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  rubot:
+    build: .
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-anthropic/claude-3-haiku}
+      - CACHE_ENABLED=true
+      - CACHE_MAX_AGE_HOURS=24
+    volumes:
+      - ./cache:/app/cache
+      - ./output:/app/output
+    command: ["--date", "2024-01-15", "--output", "/app/output/result.json", "--verbose"]
+
+  rubot-dev:
+    build: 
+      context: .
+      target: dev
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+    volumes:
+      - .:/app
+      - ./cache:/app/cache
+    working_dir: /app
+    command: ["bash"]
+    stdin_open: true
+    tty: true
