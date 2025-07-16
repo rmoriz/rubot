@@ -142,7 +142,19 @@ def main(date, output, prompt, model, config, no_cache, cache_dir, temperature, 
                 
                 # Try to parse the content as JSON
                 try:
-                    content_json = json.loads(actual_content)
+                    # Remove markdown code block wrapper if present
+                    cleaned_content = actual_content.strip()
+                    if cleaned_content.startswith('```json'):
+                        cleaned_content = cleaned_content[7:]  # Remove ```json
+                    elif cleaned_content.startswith('```'):
+                        cleaned_content = cleaned_content[3:]   # Remove ```
+                    
+                    if cleaned_content.endswith('```'):
+                        cleaned_content = cleaned_content[:-3]  # Remove trailing ```
+                    
+                    cleaned_content = cleaned_content.strip()
+                    
+                    content_json = json.loads(cleaned_content)
                     # Output the parsed JSON content
                     formatted_json = json.dumps(content_json, indent=2, ensure_ascii=False)
                     
