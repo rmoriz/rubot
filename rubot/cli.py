@@ -130,7 +130,7 @@ def main(date, output, prompt, model, config, no_cache, cache_dir, temperature, 
             markdown_content, prompt, model, temperature, max_tokens, verbose
         )
 
-        # Step 4: Extract and output JSON content from LLM response
+        # Step 4: Process and output LLM response
         try:
             # Parse OpenRouter response
             import json
@@ -140,7 +140,7 @@ def main(date, output, prompt, model, config, no_cache, cache_dir, temperature, 
             if 'choices' in openrouter_response and openrouter_response['choices']:
                 actual_content = openrouter_response['choices'][0]['message']['content']
                 
-                # Try to parse the content as JSON
+                # Try to parse the content as JSON and replace it in the response
                 try:
                     # Remove markdown code block wrapper if present
                     cleaned_content = actual_content.strip()
@@ -155,32 +155,36 @@ def main(date, output, prompt, model, config, no_cache, cache_dir, temperature, 
                     cleaned_content = cleaned_content.strip()
                     
                     content_json = json.loads(cleaned_content)
-                    # Output the parsed JSON content
-                    formatted_json = json.dumps(content_json, indent=2, ensure_ascii=False)
+                    
+                    # Replace the string content with parsed JSON in the response
+                    openrouter_response['choices'][0]['message']['content'] = content_json
+                    
+                    # Output the complete response with parsed JSON content
+                    formatted_response = json.dumps(openrouter_response, indent=2, ensure_ascii=False)
                     
                     if output:
                         with open(output, 'w', encoding='utf-8') as f:
-                            f.write(formatted_json)
-                        click.echo(f"Extracted JSON content saved to: {output}", err=True)
+                            f.write(formatted_response)
+                        click.echo(f"Complete response with parsed JSON saved to: {output}", err=True)
                     else:
-                        # Output extracted JSON to STDOUT
-                        print(formatted_json)
+                        # Output complete response with parsed JSON to STDOUT
+                        print(formatted_response)
                         
                 except json.JSONDecodeError:
-                    # Content is not valid JSON, output as-is
-                    click.echo("Warning: LLM content is not valid JSON, outputting as text", err=True)
+                    # Content is not valid JSON, keep original response
+                    click.echo("Note: LLM content is not valid JSON, keeping as text in response", err=True)
                     if output:
                         with open(output, 'w', encoding='utf-8') as f:
-                            f.write(actual_content)
-                        click.echo(f"LLM text content saved to: {output}", err=True)
+                            f.write(llm_response)
+                        click.echo(f"Original response saved to: {output}", err=True)
                     else:
-                        print(actual_content)
+                        print(llm_response)
             else:
                 # No choices in response, output raw response
                 if output:
                     with open(output, 'w', encoding='utf-8') as f:
                         f.write(llm_response)
-                    click.echo(f"Raw LLM response saved to: {output}", err=True)
+                    click.echo(f"Raw response saved to: {output}", err=True)
                 else:
                     print(llm_response)
                     
@@ -190,7 +194,7 @@ def main(date, output, prompt, model, config, no_cache, cache_dir, temperature, 
             if output:
                 with open(output, 'w', encoding='utf-8') as f:
                     f.write(llm_response)
-                click.echo(f"Raw LLM response saved to: {output}", err=True)
+                click.echo(f"Raw response saved to: {output}", err=True)
             else:
                 print(llm_response)
         
