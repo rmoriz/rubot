@@ -116,20 +116,22 @@ def main(date, output, prompt, model, config, no_cache, cache_dir, temperature, 
         # Step 3: Process with OpenRouter
         click.echo("Processing with LLM...", err=True)
         
-        # Show prompt source and content on STDERR
+        # Show prompt source and complete content on STDERR
         if prompt:
             click.echo(f"Prompt source: File '{prompt}'", err=True)
             try:
                 with open(prompt, 'r', encoding='utf-8') as f:
                     prompt_content = f.read().strip()
-                click.echo(f"Prompt content: {prompt_content[:200]}{'...' if len(prompt_content) > 200 else ''}", err=True)
+                click.echo(f"Prompt content (complete):", err=True)
+                click.echo(f"{prompt_content}", err=True)
             except Exception as e:
                 click.echo(f"Warning: Could not read prompt file: {e}", err=True)
         else:
             env_prompt = os.getenv('DEFAULT_SYSTEM_PROMPT')
             if env_prompt:
                 click.echo(f"Prompt source: Environment variable 'DEFAULT_SYSTEM_PROMPT'", err=True)
-                click.echo(f"Prompt content: {env_prompt[:200]}{'...' if len(env_prompt) > 200 else ''}", err=True)
+                click.echo(f"Prompt content (complete):", err=True)
+                click.echo(f"{env_prompt}", err=True)
             else:
                 click.echo(f"Prompt source: Unknown", err=True)
         
