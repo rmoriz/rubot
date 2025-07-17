@@ -12,7 +12,7 @@ def retry_on_failure(
     max_retries: int = 3,
     delay: float = 1.0,
     backoff: float = 2.0,
-    exceptions: Tuple[Type[Exception], ...] = (requests.RequestException,)
+    exceptions: Tuple[Type[Exception], ...] = (requests.RequestException,),
 ) -> Callable[[Callable], Callable]:
     """
     Decorator to retry function calls on specific exceptions.
@@ -42,8 +42,10 @@ def retry_on_failure(
                         raise e
 
                     import sys
+
                     print(
-                        f"Attempt {attempt + 1} failed: {e}. Retrying in {current_delay}s...", file=sys.stderr
+                        f"Attempt {attempt + 1} failed: {e}. Retrying in {current_delay}s...",
+                        file=sys.stderr,
                     )
                     time.sleep(current_delay)
                     current_delay *= backoff

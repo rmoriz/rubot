@@ -113,18 +113,20 @@ class RathausUmschauAnalysis:
         try:
             # Parse OpenRouter response format
             openrouter_response = json.loads(response_text)
-            
+
             # Extract the actual content from OpenRouter response
-            if 'choices' in openrouter_response and openrouter_response['choices']:
-                actual_content = openrouter_response['choices'][0]['message']['content']
-                
+            if "choices" in openrouter_response and openrouter_response["choices"]:
+                actual_content = openrouter_response["choices"][0]["message"]["content"]
+
                 # Try to parse the content as JSON
                 try:
                     data = json.loads(actual_content)
                     # Ensure data is a dictionary
                     if not isinstance(data, dict):
-                        raise json.JSONDecodeError("Content is not a JSON object", actual_content, 0)
-                    
+                        raise json.JSONDecodeError(
+                            "Content is not a JSON object", actual_content, 0
+                        )
+
                     # Parse announcements
                     announcements = []
                     for ann_data in data.get("announcements", []):
@@ -171,11 +173,15 @@ class RathausUmschauAnalysis:
                         source_date=source_date,
                         model_used=model,
                     )
-                    
+
                 except json.JSONDecodeError:
                     # Content is not JSON, treat as summary
                     return cls(
-                        summary=actual_content[:500] + "..." if len(actual_content) > 500 else actual_content,
+                        summary=(
+                            actual_content[:500] + "..."
+                            if len(actual_content) > 500
+                            else actual_content
+                        ),
                         announcements=[],
                         events=[],
                         important_dates=[],
@@ -186,7 +192,11 @@ class RathausUmschauAnalysis:
             else:
                 # No choices in response, use raw response as summary
                 return cls(
-                    summary=response_text[:500] + "..." if len(response_text) > 500 else response_text,
+                    summary=(
+                        response_text[:500] + "..."
+                        if len(response_text) > 500
+                        else response_text
+                    ),
                     announcements=[],
                     events=[],
                     important_dates=[],
@@ -194,11 +204,15 @@ class RathausUmschauAnalysis:
                     source_date=source_date,
                     model_used=model,
                 )
-                
+
         except json.JSONDecodeError:
             # Fallback for non-JSON responses
             return cls(
-                summary=response_text[:500] + "..." if len(response_text) > 500 else response_text,
+                summary=(
+                    response_text[:500] + "..."
+                    if len(response_text) > 500
+                    else response_text
+                ),
                 announcements=[],
                 events=[],
                 important_dates=[],

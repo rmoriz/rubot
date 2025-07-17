@@ -4,8 +4,6 @@ PDF downloader module for Rathaus-Umschau
 
 import requests
 import tempfile
-import os
-from pathlib import Path
 from .retry import retry_on_failure
 
 

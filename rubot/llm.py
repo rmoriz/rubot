@@ -6,7 +6,7 @@ import requests
 import json
 import os
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional
 from .retry import retry_on_failure
 
 
@@ -30,7 +30,9 @@ def load_prompt(prompt_path: Optional[str]) -> str:
         return env_prompt
 
     # No default prompt - require explicit configuration
-    raise ValueError("System prompt must be specified either via prompt file or DEFAULT_SYSTEM_PROMPT environment variable")
+    raise ValueError(
+        "System prompt must be specified either via prompt file or DEFAULT_SYSTEM_PROMPT environment variable"
+    )
 
 
 @retry_on_failure(max_retries=2, delay=10.0, exceptions=(requests.RequestException,))
@@ -67,9 +69,11 @@ def process_with_openrouter(
 
     # Model is required
     if not model:
-        model = os.getenv('DEFAULT_MODEL')
+        model = os.getenv("DEFAULT_MODEL")
         if not model:
-            raise ValueError("Model must be specified either as parameter or DEFAULT_MODEL environment variable")
+            raise ValueError(
+                "Model must be specified either as parameter or DEFAULT_MODEL environment variable"
+            )
 
     # Load system prompt
     system_prompt = load_prompt(prompt_path)
@@ -95,13 +99,21 @@ def process_with_openrouter(
 
     if verbose:
         import sys
+
         print("\nDEBUG: OpenRouter API Request", file=sys.stderr)
         print(f"URL: {url}", file=sys.stderr)
         print(f"Model: {model}", file=sys.stderr)
         print(f"Temperature: {temperature}", file=sys.stderr)
         print(f"Max Tokens: {max_tokens}", file=sys.stderr)
         print(f"Content Length: {len(markdown_content)} characters", file=sys.stderr)
-        print(f"System Prompt: {system_prompt[:100]}..." if len(system_prompt) > 100 else f"System Prompt: {system_prompt}", file=sys.stderr)
+        print(
+            (
+                f"System Prompt: {system_prompt[:100]}..."
+                if len(system_prompt) > 100
+                else f"System Prompt: {system_prompt}"
+            ),
+            file=sys.stderr,
+        )
         print(f"Headers: {dict(headers)}", file=sys.stderr)
         print("\nFull JSON Payload:", file=sys.stderr)
         print(json.dumps(payload, indent=2, ensure_ascii=False), file=sys.stderr)
@@ -109,9 +121,10 @@ def process_with_openrouter(
 
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=timeout)
-        
+
         if verbose:
             import sys
+
             print(f"Response Status: {response.status_code}", file=sys.stderr)
             print(f"Response Headers: {dict(response.headers)}", file=sys.stderr)
             if response.status_code != 200:
@@ -119,14 +132,17 @@ def process_with_openrouter(
             print("-" * 50, file=sys.stderr)
 
         response.raise_for_status()
-        
+
         response_json = response.json()
-        
+
         if verbose:
             import sys
+
             print("API Response received", file=sys.stderr)
             print("\nFull JSON Response:", file=sys.stderr)
-            print(json.dumps(response_json, indent=2, ensure_ascii=False), file=sys.stderr)
+            print(
+                json.dumps(response_json, indent=2, ensure_ascii=False), file=sys.stderr
+            )
             print("-" * 50, file=sys.stderr)
 
         # Return formatted JSON response
