@@ -27,11 +27,11 @@ class TestRubotConfig:
         assert config.request_timeout == 60
         assert config.cache_enabled is False
     
-    @patch.dict(os.environ, {}, clear=True)
     def test_from_env_missing_api_key(self):
-        """Test config loading works with defaults when API key missing"""
-        config = RubotConfig.from_env()
-        assert config.openrouter_api_key == "your_openrouter_api_key_here"  # Default value
+        """Test config loading uses defaults when API key missing"""
+        with patch.dict(os.environ, {}, clear=True):
+            config = RubotConfig.from_env()
+            assert config.openrouter_api_key == "your_openrouter_api_key_here"
     
     @patch.dict(os.environ, {
         'OPENROUTER_API_KEY': 'test_key',
@@ -47,20 +47,20 @@ class TestRubotConfig:
         assert config.cache_enabled is True
         assert config.max_pdf_pages == 100
     
-    @patch.dict(os.environ, {'OPENROUTER_API_KEY': 'test_key'})
     def test_from_env_missing_model(self):
-        """Test config loading works with defaults when model missing"""
-        config = RubotConfig.from_env()
-        assert config.default_model != ""  # Should have a default value
+        """Test config loading uses defaults when model missing"""
+        with patch.dict(os.environ, {'OPENROUTER_API_KEY': 'test_key'}):
+            config = RubotConfig.from_env()
+            assert config.default_model == "moonshotai/kimi-k2:free"
     
-    @patch.dict(os.environ, {'OPENROUTER_API_KEY': 'test_key'})
+    @patch.dict(os.environ, {'OPENROUTER_API_KEY': 'test_key', 'DEFAULT_MODEL': 'test/model'})
     def test_to_dict_masks_api_key(self):
         """Test config to_dict masks sensitive information"""
         config = RubotConfig.from_env()
         config_dict = config.to_dict()
         
         assert config_dict['openrouter_api_key'] == '***'
-        assert config_dict['openrouter_api_key'] == '***'  # Should be masked
+        assert config_dict['default_model'] == 'test/model'
     
     @patch('pathlib.Path.exists')
     @patch('rubot.config.load_dotenv')
