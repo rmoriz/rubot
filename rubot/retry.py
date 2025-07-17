@@ -41,8 +41,9 @@ def retry_on_failure(
                     if attempt == max_retries:
                         raise e
 
+                    import sys
                     print(
-                        f"Attempt {attempt + 1} failed: {e}. Retrying in {current_delay}s..."
+                        f"Attempt {attempt + 1} failed: {e}. Retrying in {current_delay}s...", file=sys.stderr
                     )
                     time.sleep(current_delay)
                     current_delay *= backoff
