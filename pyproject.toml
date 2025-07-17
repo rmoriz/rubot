@@ -7,14 +7,14 @@ name = "rubot"
 version = "0.1.0"
 description = "CLI tool for downloading and processing Rathaus-Umschau PDFs"
 readme = "README.md"
-license = {text = "MIT"}
+license = {text = "GPL-3.0"}
 authors = [
     {name = "rmoriz", email = "rmoriz@users.noreply.github.com"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
