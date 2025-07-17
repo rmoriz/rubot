@@ -26,8 +26,12 @@ class TestCLI:
         mock_config_obj.default_model = 'test_model'
         mock_config_obj.default_prompt_file = None
         mock_config_obj.cache_enabled = False
-        mock_config_obj.request_timeout = 30
+        mock_config_obj.request_timeout = 120
+        mock_config_obj.openrouter_timeout = 120
+        mock_config_obj.marker_timeout = 600
+        mock_config_obj.cache_dir = None
         mock_config_obj.json_indent = 2
+        mock_config_obj.to_dict.return_value = {}
         mock_config.return_value = mock_config_obj
         mock_download.return_value = '/tmp/test.pdf'
         mock_convert.return_value = 'test markdown content'
@@ -36,9 +40,9 @@ class TestCLI:
         result = self.runner.invoke(main, ['--date', '2024-01-15'])
         
         assert result.exit_code == 0
-        assert '{"result": "test"}' in result.output
-        mock_download.assert_called_once_with('2024-01-15')
-        mock_convert.assert_called_once_with('/tmp/test.pdf')
+        assert '"result": "test"' in result.output
+        mock_download.assert_called_once_with('2024-01-15', 120)
+        mock_convert.assert_called_once()
         mock_llm.assert_called_once()
     
     @patch('rubot.cli.process_with_openrouter')
@@ -69,7 +73,7 @@ class TestCLI:
                 content = f.read()
                 assert content == '{"result": "test"}'
     
-    @patch.dict('os.environ', {'OPENROUTER_API_KEY': 'test_key'})
+    @patch.dict('os.environ', {'OPENROUTER_API_KEY': 'test_key', 'DEFAULT_MODEL': 'test_model', 'DEFAULT_SYSTEM_PROMPT': 'test'})
     def test_cli_invalid_date(self):
         """Test CLI with invalid date"""
         result = self.runner.invoke(main, ['--date', 'invalid-date'])

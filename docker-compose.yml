@@ -5,7 +5,7 @@ services:
     build: .
     environment:
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
-      - DEFAULT_MODEL=${DEFAULT_MODEL:-anthropic/claude-3-haiku}
+      - DEFAULT_MODEL=${DEFAULT_MODEL}
       - CACHE_ENABLED=true
       - CACHE_MAX_AGE_HOURS=24
     volumes:

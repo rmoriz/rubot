@@ -48,7 +48,7 @@ def load_env_config() -> Dict[str, str]:
 
     return {
         'OPENROUTER_API_KEY': os.getenv('OPENROUTER_API_KEY') or '',
-        'DEFAULT_MODEL': os.getenv('DEFAULT_MODEL', 'anthropic/claude-3-haiku'),
+        'DEFAULT_MODEL': os.getenv('DEFAULT_MODEL') or '',
         'DEFAULT_PROMPT_FILE': os.getenv('DEFAULT_PROMPT_FILE') or '',
         'DEFAULT_SYSTEM_PROMPT': os.getenv('DEFAULT_SYSTEM_PROMPT') or ''
     }

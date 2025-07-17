@@ -13,7 +13,7 @@ from rubot.models import RathausUmschauAnalysis
 def main():
     # Set up REQUIRED configuration
     os.environ['OPENROUTER_API_KEY'] = 'your_api_key_here'
-    os.environ['DEFAULT_MODEL'] = 'anthropic/claude-3-haiku'
+    os.environ['DEFAULT_MODEL'] = 'your_preferred_model_here'
     os.environ['DEFAULT_SYSTEM_PROMPT'] = 'Analyze the following Rathaus-Umschau content and extract key information in a structured format.'
     
     config = RubotConfig.from_env()

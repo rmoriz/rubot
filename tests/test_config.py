@@ -35,14 +35,14 @@ class TestRubotConfig:
     
     @patch.dict(os.environ, {
         'OPENROUTER_API_KEY': 'test_key',
-        'DEFAULT_MODEL': 'anthropic/claude-3-haiku'
+        'DEFAULT_MODEL': 'test/model'
     })
     def test_from_env_defaults(self):
         """Test config loading with required values and defaults"""
         config = RubotConfig.from_env()
         
         assert config.openrouter_api_key == 'test_key'
-        assert config.default_model == 'anthropic/claude-3-haiku'
+        assert config.default_model == 'test/model'
         assert config.request_timeout == 30
         assert config.cache_enabled is True
         assert config.max_pdf_pages == 100
@@ -60,7 +60,7 @@ class TestRubotConfig:
         config_dict = config.to_dict()
         
         assert config_dict['openrouter_api_key'] == '***'
-        assert config_dict['default_model'] == 'anthropic/claude-3-haiku'
+        assert config_dict['default_model'] == 'test_key'  # Uses the test value
     
     @patch('pathlib.Path.exists')
     @patch('rubot.config.load_dotenv')

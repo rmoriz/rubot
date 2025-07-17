@@ -34,7 +34,6 @@ class RubotConfig:
 
     # Processing settings
     max_pdf_pages: int = 100
-    batch_multiplier: int = 2
 
     # Output settings
     output_format: str = "json"
@@ -81,7 +80,6 @@ class RubotConfig:
             cache_enabled=os.getenv("CACHE_ENABLED", "true").lower() == "true",
             cache_max_age_hours=int(os.getenv("CACHE_MAX_AGE_HOURS", "24")),
             max_pdf_pages=int(os.getenv("MAX_PDF_PAGES", "100")),
-            batch_multiplier=int(os.getenv("BATCH_MULTIPLIER", "2")),
             output_format=os.getenv("OUTPUT_FORMAT", "json"),
             json_indent=int(os.getenv("JSON_INDENT", "2")),
         )
@@ -101,7 +99,6 @@ class RubotConfig:
             "cache_enabled": self.cache_enabled,
             "cache_max_age_hours": self.cache_max_age_hours,
             "max_pdf_pages": self.max_pdf_pages,
-            "batch_multiplier": self.batch_multiplier,
             "output_format": self.output_format,
             "json_indent": self.json_indent,
         }

@@ -26,7 +26,7 @@ class TestIntegration:
         """Test complete workflow from download to output"""
         # Setup mocks
         mock_config_obj = MagicMock()
-        mock_config_obj.default_model = 'anthropic/claude-3-haiku'
+        mock_config_obj.default_model = 'test/model'
         mock_config_obj.default_prompt_file = None
         mock_config_obj.cache_enabled = False
         mock_config_obj.request_timeout = 30

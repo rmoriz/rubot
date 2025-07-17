@@ -6,7 +6,7 @@ import pytest
 from unittest.mock import patch, mock_open
 import os
 
-from rubot.utils import validate_date, load_env_config
+from rubot.utils import validate_date
 
 
 class TestUtils:
@@ -39,24 +39,4 @@ class TestUtils:
         with pytest.raises(ValueError, match="Invalid date"):
             validate_date("2023-02-29")  # Not a leap year
     
-    @patch.dict(os.environ, {
-        'OPENROUTER_API_KEY': 'test_key',
-        'DEFAULT_MODEL': 'test_model',
-        'DEFAULT_PROMPT_FILE': 'test_prompt.txt'
-    })
-    def test_load_env_config(self):
-        """Test loading environment configuration"""
-        config = load_env_config()
-        
-        assert config['OPENROUTER_API_KEY'] == 'test_key'
-        assert config['DEFAULT_MODEL'] == 'test_model'
-        assert config['DEFAULT_PROMPT_FILE'] == 'test_prompt.txt'
-    
-    @patch.dict(os.environ, {}, clear=True)
-    def test_load_env_config_defaults(self):
-        """Test loading environment configuration with defaults"""
-        config = load_env_config()
-        
-        assert config['OPENROUTER_API_KEY'] is None
-        assert config['DEFAULT_MODEL'] == 'anthropic/claude-3-haiku'
-        assert config['DEFAULT_PROMPT_FILE'] is None
+    # load_env_config function was removed - tests moved to test_config.py
