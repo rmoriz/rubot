@@ -53,6 +53,9 @@ RUN apt-get update && apt-get install -y \
 # Create cache directory and set permissions before switching user
 RUN mkdir -p /app/cache && chown rubot:rubot /app/cache
 
+# Create marker cache directory in /tmp with proper permissions
+RUN mkdir -p /tmp/marker-pdf && chown rubot:rubot /tmp/marker-pdf
+
 # Copy installed packages from builder
 COPY --from=builder /root/.local /home/rubot/.local
 
