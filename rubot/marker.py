@@ -2,6 +2,7 @@
 PDF to Markdown conversion using marker-pdf
 """
 
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -93,15 +94,21 @@ def _log_cache_miss(pdf_path: str) -> None:
 def _run_marker_conversion(pdf_path: str, timeout: int, cache_root: Optional[str] = None) -> str:
     """Run marker-pdf conversion and return content."""
     # Use cache_root for temporary directory
-    import os
     cache_root = cache_root or os.getenv("CACHE_ROOT", "/tmp")
     marker_temp_dir = Path(cache_root) / "marker"
     marker_temp_dir.mkdir(parents=True, exist_ok=True)
     
+    # Set marker font directory to writable location
+    font_dir = Path(cache_root) / "marker_fonts"
+    font_dir.mkdir(parents=True, exist_ok=True)
+    
     with tempfile.TemporaryDirectory(dir=str(marker_temp_dir)) as temp_dir:
         output_dir = Path(temp_dir)
 
-        # Run marker-pdf conversion
+        # Run marker-pdf conversion with font directory
+        env = os.environ.copy()
+        env['MARKER_FONT_DIR'] = str(font_dir)
+        
         cmd = [
             "marker_single",
             pdf_path,
@@ -111,7 +118,7 @@ def _run_marker_conversion(pdf_path: str, timeout: int, cache_root: Optional[str
             "markdown",
         ]
 
-        subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=timeout)
+        subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=timeout, env=env)
 
         # Find and read the generated markdown file
         markdown_file = _find_markdown_file(output_dir, pdf_path)

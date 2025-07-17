@@ -20,7 +20,9 @@
       "Bash(venv/bin/python -m pytest tests/ --cov=rubot --cov-report=term-missing)",
       "Bash(venv/bin/python:*)",
       "Bash(grep:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(docker run:*)",
+      "Bash(docker inspect:*)"
     ],
     "deny": []
   }

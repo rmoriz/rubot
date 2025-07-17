@@ -53,8 +53,11 @@ RUN apt-get update && apt-get install -y \
 # Create cache directory and set permissions before switching user
 RUN mkdir -p /app/cache && chown rubot:rubot /app/cache
 
-# Create unified cache directory with proper permissions
-RUN mkdir -p /tmp/cache /tmp/cache/huggingface /tmp/cache/marker && chown -R rubot:rubot /tmp/cache
+# Create unified cache directory and font directory with proper permissions
+RUN mkdir -p /tmp/cache /tmp/cache/huggingface /tmp/cache/marker /tmp/cache/marker_static && \
+    mkdir -p /home/rubot/.marker_fonts && \
+    mkdir -p /home/rubot/.local/lib/python3.13/site-packages/static && \
+    chown -R rubot:rubot /tmp/cache /home/rubot/.marker_fonts /home/rubot/.local/lib/python3.13/site-packages/static
 
 # Copy installed packages from builder
 COPY --from=builder /root/.local /home/rubot/.local
@@ -68,6 +71,25 @@ ENV PYTHONPATH=/home/rubot/.local/lib/python3.13/site-packages
 ENV CACHE_ROOT=/tmp/cache
 ENV HF_HOME=/tmp/cache/huggingface
 ENV XDG_CACHE_HOME=/tmp/cache
+ENV TRANSFORMERS_CACHE=/tmp/cache/huggingface/transformers
+ENV TOKENIZERS_PARALLELISM=false
+ENV MARKER_FONT_DIR=/tmp/cache/marker_fonts
+
+# Pre-download marker models and fonts to avoid runtime downloads
+COPY preload_marker_models.py /tmp/
+
+# Create writable directories and fix permissions before switching to rubot user
+RUN mkdir -p /tmp/cache/marker_fonts && \
+    chown -R rubot:rubot /tmp/cache
+
+USER rubot
+WORKDIR /tmp/cache
+
+# Run the preload script to download models and fonts
+RUN python /tmp/preload_marker_models.py
+
+# Ensure models are properly cached
+RUN find /tmp/cache -type f -name "*.bin" -o -name "*.json" | head -5 || echo "Models downloaded"
 
 WORKDIR /app
 USER rubot
