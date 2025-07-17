@@ -5,9 +5,14 @@ FROM python:3.13-alpine as builder
 RUN apk add --no-cache \
     git \
     gcc \
+    g++ \
     musl-dev \
     libffi-dev \
     python3-dev \
+    openblas-dev \
+    gfortran \
+    linux-headers \
+    make \
     && pip install --upgrade pip
 
 WORKDIR /app
@@ -29,6 +34,7 @@ FROM python:3.13-alpine as production
 # Install only runtime dependencies
 RUN apk add --no-cache \
     libffi \
+    openblas \
     && adduser -D -s /bin/sh rubot
 
 # Copy installed packages from builder
@@ -55,9 +61,14 @@ FROM python:3.13-alpine as dev
 RUN apk add --no-cache \
     git \
     gcc \
+    g++ \
     musl-dev \
     libffi-dev \
     python3-dev \
+    openblas-dev \
+    gfortran \
+    linux-headers \
+    make \
     bash \
     && pip install --upgrade pip
 
