@@ -60,299 +60,357 @@ def main(
     Download Rathaus-Umschau PDF, convert to markdown, and process with LLM.
     """
     try:
-        # Load configuration
-        try:
-            app_config = RubotConfig.from_env(config)
-        except ValueError as e:
-            click.echo(f"Configuration error: {e}", err=True)
-            raise click.Abort()
+        app_config = _load_and_validate_config(config, verbose)
+        date = _prepare_date(date)
+        prompt, model = _validate_prompt_and_model(prompt, model, app_config)
+        cache = _setup_cache(no_cache, cache_dir, app_config, verbose)
 
-        if verbose:
-            click.echo("Configuration loaded:", err=True)
-            config_dict = app_config.to_dict()
-            for key, value in config_dict.items():
-                click.echo(f"  {key}: {value}", err=True)
-            click.echo(err=True)
+        _log_processing_info(date, model, temperature, max_tokens, verbose)
 
-        # Use today's date if not specified
-        if date is None:
-            date = datetime.now().strftime("%Y-%m-%d")
-
-        # Validate date format
-        validate_date(date)
-
-        # Use config defaults if not specified - but require them to be set
-        if prompt is None:
-            prompt = app_config.default_prompt_file
-            if not prompt:
-                if not os.getenv("DEFAULT_SYSTEM_PROMPT"):
-                    raise ValueError(
-                        "Either --prompt parameter, DEFAULT_PROMPT_FILE, or DEFAULT_SYSTEM_PROMPT must be configured"
-                    )
-
-        if model is None:
-            model = app_config.default_model
-            if not model:
-                raise ValueError(
-                    "Either --model parameter or DEFAULT_MODEL environment variable must be configured"
-                )
-
-        # Setup cache
-        cache = None
-        if not no_cache and app_config.cache_enabled:
-            cache_directory = cache_dir or app_config.cache_dir
-            if not cache_directory:
-                cache_directory = os.path.join(tempfile.gettempdir(), "rubot_cache")
-            cache = PDFCache(cache_directory, app_config.cache_max_age_hours)
-            if verbose:
-                click.echo(f"Cache enabled: {cache.cache_dir}", err=True)
-
-        click.echo(f"Processing Rathaus-Umschau for date: {date}", err=True)
-        if verbose:
-            click.echo(f"Model: {model}", err=True)
-            click.echo(f"Temperature: {temperature}", err=True)
-            click.echo(f"Max tokens: {max_tokens}", err=True)
-
-        # Step 1: Download PDF (with caching)
-        click.echo("Checking PDF cache...", err=True)
-        pdf_url = generate_pdf_url(date)
-
-        pdf_path = None
-        if cache:
-            pdf_path = cache.get(pdf_url)
-            if pdf_path:
-                click.echo(f"PDF Cache HIT: {pdf_path}", err=True)
-
-        if not pdf_path:
-            click.echo("PDF Cache MISS: Downloading...", err=True)
-            pdf_path = download_pdf(date, app_config.request_timeout)
-            if cache:
-                cached_path = cache.put(pdf_url, pdf_path)
-                click.echo(f"PDF cached to: {cached_path}", err=True)
-            else:
-                click.echo(f"PDF downloaded to: {pdf_path}", err=True)
-
-        # Step 2: Convert to Markdown
-        click.echo("Checking Markdown cache...", err=True)
-        markdown_content = convert_pdf_to_markdown(
-            pdf_path,
-            use_cache=app_config.cache_enabled,
-            cache_dir=cache_directory,
-            verbose=verbose,
-            timeout=app_config.marker_timeout,
+        pdf_path = _download_pdf_with_cache(date, cache, app_config, verbose)
+        markdown_content = _convert_to_markdown(
+            pdf_path, app_config, cache_dir, verbose
         )
 
-        if verbose:
-            click.echo(f"Markdown length: {len(markdown_content)} characters", err=True)
-
-        # Step 3: Process with OpenRouter
-        click.echo("Processing with LLM...", err=True)
-
-        # Show prompt source on STDERR
-        if prompt:
-            click.echo(f"Prompt source: File '{prompt}'", err=True)
-        else:
-            env_prompt = os.getenv("DEFAULT_SYSTEM_PROMPT")
-            if env_prompt:
-                click.echo(
-                    "Prompt source: Environment variable 'DEFAULT_SYSTEM_PROMPT'",
-                    err=True,
-                )
-            else:
-                click.echo("Prompt source: Unknown", err=True)
-
-        llm_response = process_with_openrouter(
+        _log_prompt_source(prompt, verbose)
+        llm_response = _process_with_llm(
             markdown_content,
             prompt,
             model,
             temperature,
             max_tokens,
             verbose,
-            app_config.openrouter_timeout,
+            app_config,
         )
 
-        # Step 4: Process and output LLM response
-        try:
-            # Parse OpenRouter response
-            import json
+        _handle_output(llm_response, output, verbose, date, model)
+        _cleanup_temp_files(cache, pdf_path)
 
-            openrouter_response = json.loads(llm_response)
+    except Exception as e:
+        _handle_error(e, verbose)
 
-            # Extract the actual content from OpenRouter response
-            if "choices" in openrouter_response and openrouter_response["choices"]:
-                actual_content = openrouter_response["choices"][0]["message"]["content"]
 
-                # Try to parse the content as JSON and replace it in the response
-                try:
-                    # Robust JSON extraction using multiple strategies
-                    import re
+def _load_and_validate_config(config: Optional[str], verbose: bool) -> RubotConfig:
+    """Load and validate configuration."""
+    try:
+        app_config = RubotConfig.from_env(config)
+    except ValueError as e:
+        click.echo(f"Configuration error: {e}", err=True)
+        raise click.Abort()
 
-                    cleaned_content = actual_content.strip()
+    if verbose:
+        click.echo("Configuration loaded:", err=True)
+        config_dict = app_config.to_dict()
+        for key, value in config_dict.items():
+            click.echo(f"  {key}: {value}", err=True)
+        click.echo(err=True)
 
-                    # Strategy 1: Extract from markdown code blocks (most robust)
-                    code_block_patterns = [
-                        r"```json\s*\n(.*?)\n```",  # ```json ... ```
-                        r"```\s*\n(.*?)\n```",  # ``` ... ```
-                        r"`([^`]*)`",  # `...` (single backticks)
-                    ]
+    return app_config
 
-                    json_content = None
-                    for pattern in code_block_patterns:
-                        matches = re.findall(pattern, cleaned_content, re.DOTALL)
-                        for match in matches:
-                            candidate = match.strip()
-                            # Check if this looks like JSON (starts with { or [)
-                            if candidate.startswith(("{", "[")):
-                                try:
-                                    # Test if it's valid JSON
-                                    json.loads(candidate)
-                                    json_content = candidate
-                                    break
-                                except json.JSONDecodeError:
-                                    continue
-                        if json_content:
-                            break
 
-                    # Strategy 2: Look for JSON object boundaries in the entire text
-                    if not json_content:
-                        # Find all potential JSON objects/arrays
-                        json_candidates = []
+def _prepare_date(date: Optional[str]) -> str:
+    """Prepare and validate date."""
+    if date is None:
+        date = datetime.now().strftime("%Y-%m-%d")
+    validate_date(date)
+    return date
 
-                        # Look for objects {...}
-                        brace_count = 0
-                        start_idx = -1
-                        for i, char in enumerate(cleaned_content):
-                            if char == "{":
-                                if brace_count == 0:
-                                    start_idx = i
-                                brace_count += 1
-                            elif char == "}":
-                                brace_count -= 1
-                                if brace_count == 0 and start_idx != -1:
-                                    json_candidates.append(
-                                        cleaned_content[start_idx : i + 1]
-                                    )
 
-                        # Look for arrays [...]
-                        bracket_count = 0
-                        start_idx = -1
-                        for i, char in enumerate(cleaned_content):
-                            if char == "[":
-                                if bracket_count == 0:
-                                    start_idx = i
-                                bracket_count += 1
-                            elif char == "]":
-                                bracket_count -= 1
-                                if bracket_count == 0 and start_idx != -1:
-                                    json_candidates.append(
-                                        cleaned_content[start_idx : i + 1]
-                                    )
+def _validate_prompt_and_model(
+    prompt: Optional[str], model: Optional[str], app_config: RubotConfig
+) -> tuple[Optional[str], str]:
+    """Validate prompt and model configuration."""
+    if prompt is None:
+        prompt = app_config.default_prompt_file
+        if not prompt:
+            if not os.getenv("DEFAULT_SYSTEM_PROMPT"):
+                raise ValueError(
+                    "Either --prompt parameter, DEFAULT_PROMPT_FILE, or "
+                    "DEFAULT_SYSTEM_PROMPT must be configured"
+                )
 
-                        # Test candidates for valid JSON
-                        for candidate in json_candidates:
-                            try:
-                                json.loads(candidate.strip())
-                                json_content = candidate.strip()
-                                break
-                            except json.JSONDecodeError:
-                                continue
+    if model is None:
+        model = app_config.default_model
+        if not model:
+            raise ValueError(
+                "Either --model parameter or DEFAULT_MODEL environment "
+                "variable must be configured"
+            )
 
-                    # Use the found JSON content or fall back to original
-                    if json_content:
-                        cleaned_content = json_content
-                    else:
-                        # Last resort: try the entire content as-is
-                        cleaned_content = cleaned_content
+    return prompt, model
 
-                    content_json = json.loads(cleaned_content)
 
-                    # Replace the string content with parsed JSON in the response
+def _setup_cache(
+    no_cache: bool, cache_dir: Optional[str], app_config: RubotConfig, verbose: bool
+) -> Optional[PDFCache]:
+    """Setup PDF cache if enabled."""
+    if no_cache or not app_config.cache_enabled:
+        return None
+
+    cache_directory = cache_dir or app_config.cache_dir
+    if not cache_directory:
+        cache_directory = os.path.join(tempfile.gettempdir(), "rubot_cache")
+
+    cache = PDFCache(cache_directory, app_config.cache_max_age_hours)
+    if verbose:
+        click.echo(f"Cache enabled: {cache.cache_dir}", err=True)
+
+    return cache
+
+
+def _log_processing_info(
+    date: str, model: str, temperature: float, max_tokens: int, verbose: bool
+) -> None:
+    """Log processing information."""
+    click.echo(f"Processing Rathaus-Umschau for date: {date}", err=True)
+    if verbose:
+        click.echo(f"Model: {model}", err=True)
+        click.echo(f"Temperature: {temperature}", err=True)
+        click.echo(f"Max tokens: {max_tokens}", err=True)
+
+
+def _download_pdf_with_cache(
+    date: str, cache: Optional[PDFCache], app_config: RubotConfig, verbose: bool
+) -> str:
+    """Download PDF with caching support."""
+    click.echo("Checking PDF cache...", err=True)
+    pdf_url = generate_pdf_url(date)
+
+    pdf_path = None
+    if cache:
+        pdf_path = cache.get(pdf_url)
+        if pdf_path:
+            click.echo(f"PDF Cache HIT: {pdf_path}", err=True)
+
+    if not pdf_path:
+        click.echo("PDF Cache MISS: Downloading...", err=True)
+        pdf_path = download_pdf(date, app_config.request_timeout)
+        if cache:
+            cached_path = cache.put(pdf_url, pdf_path)
+            click.echo(f"PDF cached to: {cached_path}", err=True)
+        else:
+            click.echo(f"PDF downloaded to: {pdf_path}", err=True)
+
+    return pdf_path
+
+
+def _convert_to_markdown(
+    pdf_path: str, app_config: RubotConfig, cache_dir: Optional[str], verbose: bool
+) -> str:
+    """Convert PDF to markdown."""
+    click.echo("Checking Markdown cache...", err=True)
+    markdown_content = convert_pdf_to_markdown(
+        pdf_path,
+        use_cache=app_config.cache_enabled,
+        cache_dir=cache_dir,
+        verbose=verbose,
+        timeout=app_config.marker_timeout,
+    )
+
+    if verbose:
+        click.echo(f"Markdown length: {len(markdown_content)} characters", err=True)
+
+    return markdown_content
+
+
+def _log_prompt_source(prompt: Optional[str], verbose: bool) -> None:
+    """Log prompt source information."""
+    if prompt:
+        click.echo(f"Prompt source: File '{prompt}'", err=True)
+    else:
+        env_prompt = os.getenv("DEFAULT_SYSTEM_PROMPT")
+        if env_prompt:
+            click.echo(
+                "Prompt source: Environment variable 'DEFAULT_SYSTEM_PROMPT'",
+                err=True,
+            )
+        else:
+            click.echo("Prompt source: Unknown", err=True)
+
+
+def _process_with_llm(
+    markdown_content: str,
+    prompt: Optional[str],
+    model: str,
+    temperature: float,
+    max_tokens: int,
+    verbose: bool,
+    app_config: RubotConfig,
+) -> str:
+    """Process content with LLM."""
+    click.echo("Processing with LLM...", err=True)
+    return process_with_openrouter(
+        markdown_content,
+        prompt,
+        model,
+        temperature,
+        max_tokens,
+        verbose,
+        app_config.openrouter_timeout,
+    )
+
+
+def _handle_output(
+    llm_response: str, output: Optional[str], verbose: bool, date: str, model: str
+) -> None:
+    """Handle LLM response output and parsing."""
+    try:
+        import json
+
+        openrouter_response = json.loads(llm_response)
+
+        if "choices" in openrouter_response and openrouter_response["choices"]:
+            actual_content = openrouter_response["choices"][0]["message"]["content"]
+
+            try:
+                json_content = _extract_json_from_content(actual_content)
+                if json_content:
+                    content_json = json.loads(json_content)
                     openrouter_response["choices"][0]["message"][
                         "content"
                     ] = content_json
 
-                    # Output the complete response with parsed JSON content
-                    formatted_response = json.dumps(
-                        openrouter_response, indent=2, ensure_ascii=False
-                    )
-
-                    if output:
-                        with open(output, "w", encoding="utf-8") as f:
-                            f.write(formatted_response)
-                        click.echo(
-                            f"Complete response with parsed JSON saved to: {output}",
-                            err=True,
-                        )
-                    else:
-                        # Output complete response with parsed JSON to STDOUT
-                        print(formatted_response)
-
-                except json.JSONDecodeError:
-                    # Content is not valid JSON, keep original response
-                    click.echo(
-                        "Note: LLM content is not valid JSON, keeping as text in response",
-                        err=True,
-                    )
-                    if output:
-                        with open(output, "w", encoding="utf-8") as f:
-                            f.write(llm_response)
-                        click.echo(f"Original response saved to: {output}", err=True)
-                    else:
-                        print(llm_response)
-            else:
-                # No choices in response, output raw response
-                if output:
-                    with open(output, "w", encoding="utf-8") as f:
-                        f.write(llm_response)
-                    click.echo(f"Raw response saved to: {output}", err=True)
-                else:
-                    print(llm_response)
-
-        except json.JSONDecodeError:
-            # Fallback: output raw response if parsing fails
-            click.echo(
-                "Warning: Could not parse OpenRouter response, outputting raw response",
-                err=True,
-            )
-            if output:
-                with open(output, "w", encoding="utf-8") as f:
-                    f.write(llm_response)
-                click.echo(f"Raw response saved to: {output}", err=True)
-            else:
-                print(llm_response)
-
-        # Optional: Parse and show analysis summary on STDERR if verbose
-        if verbose:
-            try:
-                analysis = RathausUmschauAnalysis.from_llm_response(
-                    llm_response, date, model
+                formatted_response = json.dumps(
+                    openrouter_response, indent=2, ensure_ascii=False
                 )
-                click.echo("Analysis summary:", err=True)
-                click.echo(
-                    f"  - Summary length: {len(analysis.summary)} characters", err=True
+                _write_output(
+                    formatted_response, output, "Complete response with parsed JSON"
                 )
-                click.echo(f"  - {len(analysis.announcements)} announcements", err=True)
-                click.echo(f"  - {len(analysis.events)} events", err=True)
+
+            except json.JSONDecodeError:
                 click.echo(
-                    f"  - {len(analysis.important_dates)} important dates", err=True
-                )
-            except Exception as e:
-                click.echo(
-                    f"Note: Could not parse LLM response as structured data: {e}",
+                    "Note: LLM content is not valid JSON, keeping as text in response",
                     err=True,
                 )
+                _write_output(llm_response, output, "Original response")
+        else:
+            _write_output(llm_response, output, "Raw response")
 
-        # Cleanup temporary files (but not cached ones)
-        if not cache and pdf_path and os.path.exists(pdf_path):
-            os.remove(pdf_path)
+    except json.JSONDecodeError:
+        click.echo(
+            "Warning: Could not parse OpenRouter response, outputting raw response",
+            err=True,
+        )
+        _write_output(llm_response, output, "Raw response")
 
+    if verbose:
+        _log_analysis_summary(llm_response, date, model)
+
+
+def _extract_json_from_content(content: str) -> Optional[str]:
+    """Extract JSON content from LLM response using multiple strategies."""
+    import re
+
+    cleaned_content = content.strip()
+
+    # Strategy 1: Extract from markdown code blocks
+    code_block_patterns = [
+        r"```json\s*\n(.*?)\n```",
+        r"```\s*\n(.*?)\n```",
+        r"`([^`]*)`",
+    ]
+
+    for pattern in code_block_patterns:
+        matches = re.findall(pattern, cleaned_content, re.DOTALL)
+        for match in matches:
+            candidate = match.strip()
+            if candidate.startswith(("{", "[")):
+                try:
+                    import json
+
+                    json.loads(candidate)
+                    return candidate
+                except json.JSONDecodeError:
+                    continue
+
+    # Strategy 2: Look for JSON object boundaries
+    json_candidates = _find_json_candidates(cleaned_content)
+
+    for candidate in json_candidates:
+        try:
+            import json
+
+            json.loads(candidate.strip())
+            return candidate.strip()
+        except json.JSONDecodeError:
+            continue
+
+    return None
+
+
+def _find_json_candidates(content: str) -> list[str]:
+    """Find potential JSON objects/arrays in content."""
+    candidates = []
+
+    # Look for objects {...}
+    brace_count = 0
+    start_idx = -1
+    for i, char in enumerate(content):
+        if char == "{":
+            if brace_count == 0:
+                start_idx = i
+            brace_count += 1
+        elif char == "}":
+            brace_count -= 1
+            if brace_count == 0 and start_idx != -1:
+                candidates.append(content[start_idx : i + 1])
+
+    # Look for arrays [...]
+    bracket_count = 0
+    start_idx = -1
+    for i, char in enumerate(content):
+        if char == "[":
+            if bracket_count == 0:
+                start_idx = i
+            bracket_count += 1
+        elif char == "]":
+            bracket_count -= 1
+            if bracket_count == 0 and start_idx != -1:
+                candidates.append(content[start_idx : i + 1])
+
+    return candidates
+
+
+def _write_output(content: str, output: Optional[str], description: str) -> None:
+    """Write content to output file or stdout."""
+    if output:
+        with open(output, "w", encoding="utf-8") as f:
+            f.write(content)
+        click.echo(f"{description} saved to: {output}", err=True)
+    else:
+        print(content)
+
+
+def _log_analysis_summary(llm_response: str, date: str, model: str) -> None:
+    """Log analysis summary if possible."""
+    try:
+        analysis = RathausUmschauAnalysis.from_llm_response(llm_response, date, model)
+        click.echo("Analysis summary:", err=True)
+        click.echo(f"  - Summary length: {len(analysis.summary)} characters", err=True)
+        click.echo(f"  - {len(analysis.announcements)} announcements", err=True)
+        click.echo(f"  - {len(analysis.events)} events", err=True)
+        click.echo(f"  - {len(analysis.important_dates)} important dates", err=True)
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
-        if verbose:
-            import traceback
+        click.echo(
+            f"Note: Could not parse LLM response as structured data: {e}",
+            err=True,
+        )
 
-            click.echo(traceback.format_exc(), err=True)
-        raise click.Abort()
+
+def _cleanup_temp_files(cache: Optional[PDFCache], pdf_path: Optional[str]) -> None:
+    """Cleanup temporary files if not cached."""
+    if not cache and pdf_path and os.path.exists(pdf_path):
+        os.remove(pdf_path)
+
+
+def _handle_error(e: Exception, verbose: bool) -> None:
+    """Handle and log errors."""
+    click.echo(f"Error: {e}", err=True)
+    if verbose:
+        import traceback
+
+        click.echo(traceback.format_exc(), err=True)
+    raise click.Abort()
 
 
 if __name__ == "__main__":
