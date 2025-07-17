@@ -53,9 +53,6 @@ RUN apt-get update && apt-get install -y \
 # Create cache directory and set permissions before switching user
 RUN mkdir -p /app/cache && chown rubot:rubot /app/cache
 
-# Create marker cache directory in /tmp with proper permissions
-RUN mkdir -p /tmp/marker-pdf && chown rubot:rubot /tmp/marker-pdf
-
 # Copy installed packages from builder
 COPY --from=builder /root/.local /home/rubot/.local
 
@@ -71,37 +68,3 @@ USER rubot
 
 ENTRYPOINT ["python", "-m", "rubot"]
 
-# Development stage - for local development
-FROM python:3.13-slim AS dev
-
-RUN apt-get update && apt-get install -y \
-    git \
-    gcc \
-    g++ \
-    build-essential \
-    libffi-dev \
-    python3-dev \
-    libopenblas-dev \
-    gfortran \
-    pkg-config \
-    libgl1-mesa-glx \
-    libglib2.0-0 \
-    libsm6 \
-    libxext6 \
-    libxrender-dev \
-    libgomp1 \
-    curl \
-    wget \
-    bash \
-    && rm -rf /var/lib/apt/lists/* \
-    && pip install --upgrade pip
-
-WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-RUN pip install --no-cache-dir -e ".[dev]"
-
-CMD ["bash"]

@@ -89,7 +89,11 @@ def _log_cache_miss(pdf_path: str) -> None:
 
 def _run_marker_conversion(pdf_path: str, timeout: int) -> str:
     """Run marker-pdf conversion and return content."""
-    with tempfile.TemporaryDirectory() as temp_dir:
+    # Use /tmp/marker-pdf as the temporary directory to avoid permission issues
+    marker_temp_dir = Path("/tmp/marker-pdf")
+    marker_temp_dir.mkdir(exist_ok=True)
+    
+    with tempfile.TemporaryDirectory(dir=str(marker_temp_dir)) as temp_dir:
         output_dir = Path(temp_dir)
 
         # Run marker-pdf conversion

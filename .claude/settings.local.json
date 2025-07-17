@@ -17,7 +17,8 @@
       "Bash(git commit:*)",
       "WebFetch(domain:pypi.org)",
       "Bash(venv/bin/mypy:*)",
-      "Bash(venv/bin/python -m pytest tests/ --cov=rubot --cov-report=term-missing)"
+      "Bash(venv/bin/python -m pytest tests/ --cov=rubot --cov-report=term-missing)",
+      "Bash(venv/bin/python:*)"
     ],
     "deny": []
   }
