@@ -10,7 +10,7 @@ from rubot.models import Announcement, Event, ImportantDate, RathausUmschauAnaly
 
 
 class TestModels:
-    
+
     def test_announcement_creation(self):
         """Test Announcement model creation"""
         ann = Announcement(
@@ -18,34 +18,30 @@ class TestModels:
             description="Test description",
             category="test",
             date="2024-01-15",
-            location="Munich"
+            location="Munich",
         )
-        
+
         assert ann.title == "Test Announcement"
         assert ann.description == "Test description"
         assert ann.category == "test"
         assert ann.date == "2024-01-15"
         assert ann.location == "Munich"
-    
+
     def test_announcement_to_dict(self):
         """Test Announcement to_dict method"""
-        ann = Announcement(
-            title="Test",
-            description="Desc",
-            category="cat"
-        )
-        
+        ann = Announcement(title="Test", description="Desc", category="cat")
+
         result = ann.to_dict()
         expected = {
-            'title': 'Test',
-            'description': 'Desc',
-            'category': 'cat',
-            'date': None,
-            'location': None
+            "title": "Test",
+            "description": "Desc",
+            "category": "cat",
+            "date": None,
+            "location": None,
         }
-        
+
         assert result == expected
-    
+
     def test_event_creation(self):
         """Test Event model creation"""
         event = Event(
@@ -53,40 +49,36 @@ class TestModels:
             date="2024-01-15",
             time="14:00",
             location="City Hall",
-            description="Test event description"
+            description="Test event description",
         )
-        
+
         assert event.title == "Test Event"
         assert event.date == "2024-01-15"
         assert event.time == "14:00"
         assert event.location == "City Hall"
         assert event.description == "Test event description"
-    
+
     def test_important_date_creation(self):
         """Test ImportantDate model creation"""
         imp_date = ImportantDate(
             description="Application deadline",
             date="2024-01-31",
-            details="Submit by 5 PM"
+            details="Submit by 5 PM",
         )
-        
+
         assert imp_date.description == "Application deadline"
         assert imp_date.date == "2024-01-31"
         assert imp_date.details == "Submit by 5 PM"
-    
+
     def test_rathaus_umschau_analysis_creation(self):
         """Test RathausUmschauAnalysis model creation"""
         announcements = [
             Announcement("Ann 1", "Desc 1", "cat1"),
-            Announcement("Ann 2", "Desc 2", "cat2")
+            Announcement("Ann 2", "Desc 2", "cat2"),
         ]
-        events = [
-            Event("Event 1", "2024-01-15")
-        ]
-        important_dates = [
-            ImportantDate("Deadline", "2024-01-31")
-        ]
-        
+        events = [Event("Event 1", "2024-01-15")]
+        important_dates = [ImportantDate("Deadline", "2024-01-31")]
+
         analysis = RathausUmschauAnalysis(
             summary="Test summary",
             announcements=announcements,
@@ -94,16 +86,16 @@ class TestModels:
             important_dates=important_dates,
             processing_date="2024-01-15T10:00:00",
             source_date="2024-01-15",
-            model_used="test-model"
+            model_used="test-model",
         )
-        
+
         assert analysis.summary == "Test summary"
         assert len(analysis.announcements) == 2
         assert len(analysis.events) == 1
         assert len(analysis.important_dates) == 1
         assert analysis.source_date == "2024-01-15"
         assert analysis.model_used == "test-model"
-    
+
     def test_rathaus_umschau_analysis_to_json(self):
         """Test RathausUmschauAnalysis to_json method"""
         analysis = RathausUmschauAnalysis(
@@ -113,17 +105,17 @@ class TestModels:
             important_dates=[],
             processing_date="2024-01-15T10:00:00",
             source_date="2024-01-15",
-            model_used="test-model"
+            model_used="test-model",
         )
-        
+
         json_str = analysis.to_json()
         parsed = json.loads(json_str)
-        
-        assert parsed['summary'] == "Test"
-        assert parsed['announcements'] == []
-        assert parsed['source_date'] == "2024-01-15"
-        assert parsed['model_used'] == "test-model"
-    
+
+        assert parsed["summary"] == "Test"
+        assert parsed["announcements"] == []
+        assert parsed["source_date"] == "2024-01-15"
+        assert parsed["model_used"] == "test-model"
+
     def test_from_llm_response_valid_json(self):
         """Test creating analysis from valid LLM JSON response"""
         # Create OpenRouter format response
@@ -134,39 +126,24 @@ class TestModels:
                     "title": "Test Ann",
                     "description": "Test desc",
                     "category": "test",
-                    "date": "2024-01-15"
+                    "date": "2024-01-15",
                 }
             ],
             "events": [
-                {
-                    "title": "Test Event",
-                    "date": "2024-01-16",
-                    "location": "Munich"
-                }
+                {"title": "Test Event", "date": "2024-01-16", "location": "Munich"}
             ],
-            "important_dates": [
-                {
-                    "description": "Test deadline",
-                    "date": "2024-01-31"
-                }
-            ]
+            "important_dates": [{"description": "Test deadline", "date": "2024-01-31"}],
         }
-        
+
         openrouter_response = {
-            "choices": [
-                {
-                    "message": {
-                        "content": json.dumps(content_data)
-                    }
-                }
-            ]
+            "choices": [{"message": {"content": json.dumps(content_data)}}]
         }
         llm_response = json.dumps(openrouter_response)
-        
+
         analysis = RathausUmschauAnalysis.from_llm_response(
             llm_response, "2024-01-15", "test-model"
         )
-        
+
         assert analysis.summary == "Test summary"
         assert len(analysis.announcements) == 1
         assert analysis.announcements[0].title == "Test Ann"
@@ -174,15 +151,15 @@ class TestModels:
         assert analysis.events[0].title == "Test Event"
         assert len(analysis.important_dates) == 1
         assert analysis.important_dates[0].description == "Test deadline"
-    
+
     def test_from_llm_response_invalid_json(self):
         """Test creating analysis from invalid JSON response"""
         llm_response = "This is not valid JSON"
-        
+
         analysis = RathausUmschauAnalysis.from_llm_response(
             llm_response, "2024-01-15", "test-model"
         )
-        
+
         assert "This is not valid JSON" in analysis.summary
         assert len(analysis.announcements) == 0
         assert len(analysis.events) == 0

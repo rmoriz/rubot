@@ -124,13 +124,13 @@ JSON_INDENT=2
 rubot
 
 # 🗓️ Process specific date
-rubot --date 2024-01-15
+rubot --date 2025-07-17
 
 # 💾 Save to file
-rubot --date 2024-01-15 --output result.json
+rubot --date 2025-07-17 --output result.json
 
 # 🎨 Use custom prompt and model
-rubot --date 2024-01-15 --prompt custom_prompt.txt --model gpt-4
+rubot --date 2025-07-17 --prompt custom_prompt.txt --model gpt-4
 ```
 
 ### 🛠️ CLI Options
@@ -208,30 +208,116 @@ The tool outputs **structured JSON** with extracted information:
 
 ```json
 {
-  "summary": "Brief summary of the document",
+  "issue": "134",
+  "year": "2025",
+  "id": "2025-07-17",
+  "summary": "Rathaus-Umschau 134/2025: Sanierung Markt Wiener Platz, Neubau Thomas-Wimmer-Haus in Laim, neue Feuerwache 3 in Laim, Gedenkveranstaltung 9. Jahrestag OEZ-Attentat, Baustellen-Radverkehr, Vandalismus Zierbrunnen Harras, Ausstellungen Mode- und Designschulen.",
+  "social_media_post": "# KI-Kommentar zur Rathaus-Umschau 134 vom 17.07.2025\n\n## Baustellen-Radverkehr: Endlich Priorität?\nGrüne fordern Fuß- \u0026 Radverkehr vor MIV bei Baustellen. MobRef antwortet: „Ist schon lange so.“ Wirklich? Dann zeigt’s mal, statt nur davon zu reden!\n\n## Feuerwache 3 Laim: 10-Meter-Fahrrad-Freistreifen\nImmerhin: Für den neuen Standort wird ein 10 m breiter Streifen für „künftigen Fußgänger- und Fahrradsteg“ freigehalten. Bleibt nur zu hoffen, dass daraus mehr wird als ein Schmierzettel im Plan.\n\nQuelle: https://ru.muenchen.de/2025/134",
   "announcements": [
     {
-      "title": "Announcement Title",
-      "description": "Detailed description", 
-      "category": "municipal_decision",
-      "date": "2024-01-15",
-      "location": "Munich City Hall"
+      "title": "Markt am Wiener Platz wird saniert",
+      "description": "Großreparatur statt Neubau: 3 Mio € Eigenfinanzierung, Interimsmarkt ab Frühjahr 2026, Fertigung Ende 2027",
+      "category": "construction",
+      "date": "Ende 2027",
+      "location": "Wiener Platz, Haidhausen"
+    },
+    {
+      "title": "Neubau Thomas-Wimmer-Haus in der „Alten Heimat“",
+      "description": "159 barrierefreie Wohnungen + Tagespflege, Baubeginn Herbst 2026, Fertigstellung Ende 2029",
+      "category": "construction",
+      "date": "Ende 2029",
+      "location": "Laim"
+    },
+    {
+      "title": "Neue Feuerwache 3 in Laim",
+      "description": "Ersatz für Schwanthalerhöhe, Generalübernehmer-Verfahren, Baustart nach DB-Räumung Ende 2026",
+      "category": "construction",
+      "date": "Ende 2026",
+      "location": "Landsberger Str. 332"
+    },
+    {
+      "title": "Zierbrunnen am Harras wieder beschädigt",
+      "description": "Vandalismus kostet 15 000 €, Wiederinbetriebnahme Ende Juli geplant",
+      "category": "public services",
+      "date": "Ende Juli 2025",
+      "location": "Harras"
     }
   ],
   "events": [
     {
-      "title": "Event Title",
-      "date": "2024-01-20", 
+      "title": "Eröffnung naturnaher Pausenhof Guardinistraße 60",
+      "date": "18. Juli 2025",
       "time": "14:00",
-      "location": "Event Location",
-      "description": "Event description"
+      "location": "Grund- und Mittelschule Guardinistraße 60",
+      "description": "Erster naturnaher Pausenhof Münchens mit Bürgermeisterin Dietl"
+    },
+    {
+      "title": "Enthüllung „Ort der Demokratie“ Prannerstraße 8",
+      "date": "18. Juli 2025",
+      "time": "15:00",
+      "location": "Foyer MEAG, Prannerstraße 8",
+      "description": "Ehrung durch Landtagspräsidentin Aigner und OB Reiter"
+    },
+    {
+      "title": "Kunstprojekt „Menzinga“",
+      "date": "18. Juli 2025",
+      "time": "16:00",
+      "location": "Fußgänger-Unterführung S-Bahnhof Untermenzing",
+      "description": "800 m² Wandbild von Martin Blumöhr"
+    },
+    {
+      "title": "Gedenken Reichsbahnlager Neuaubing",
+      "date": "18. Juli 2025",
+      "time": "16:00",
+      "location": "Erinnerungsort Neuaubing, Ehrenbürgstraße 9",
+      "description": "Gedenkzeichen für 11 Zwangsarbeiter*innen"
+    },
+    {
+      "title": "Eröffnung Spielplatz Gollierplatz",
+      "date": "21. Juli 2025",
+      "time": "12:30",
+      "location": "Gollierplatz",
+      "description": "Neuer inklusiver Spielplatz mit Wasserspielbereich"
+    },
+    {
+      "title": "JEF-EU-Planspiel im Landtag",
+      "date": "21. Juli 2025",
+      "time": "14:00",
+      "location": "Bayerischer Landtag, Max-Planck-Straße 1",
+      "description": "100 Schüler*innen simulieren EU-Parlament"
+    },
+    {
+      "title": "Designpreis „Goldenes Pony“",
+      "date": "22. Juli 2025",
+      "time": "20:00",
+      "location": "Roßmarkt 15",
+      "description": "Verleihung mit Stadtschulrat Kraus"
+    },
+    {
+      "title": "Modenschau Meisterschule für Mode",
+      "date": "24. Juli 2025",
+      "time": "20:00",
+      "location": "Muffathalle, Zellstraße 4",
+      "description": "Premiere der Kollektionen „Breaking Patterns“"
     }
   ],
-  "metadata": {
-    "source_date": "2024-01-15",
-    "processed_at": "2024-01-15T10:30:00Z",
-    "model_used": "anthropic/claude-3-5-sonnet"
-  }
+  "important_dates": [
+    {
+      "description": "Akkreditierung für OEZ-Gedenkveranstaltung",
+      "date": "19. Juli 2025",
+      "details": "für Medienvertreter*innen"
+    },
+    {
+      "description": "Akkreditierung Modenschau",
+      "date": "23. Juli 2025, 16:00",
+      "details": "bei presse.rbs@muenchen.de"
+    },
+    {
+      "description": "Ausstellung Wettbewerbsergebnisse Ramersdorf",
+      "date": "7. August 2025",
+      "details": "täglich 8–20 Uhr, Blumenstraße 28b"
+    }
+  ]
 }
 ```
 

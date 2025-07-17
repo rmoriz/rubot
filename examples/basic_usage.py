@@ -46,7 +46,7 @@ def main():
     print("\n=== RAW OPENROUTER RESPONSE ===")
     print(llm_response)
     
-    # Optional: Parse for analysis (like CLI tool does in verbose mode)
+    # Parse response (CLI tool now outputs JSON by default)
     try:
         analysis = RathausUmschauAnalysis.from_llm_response(
             llm_response,
@@ -55,14 +55,27 @@ def main():
         )
         
         print(f"\n=== ANALYSIS SUMMARY ===")
-        print(f"- Summary length: {len(analysis.summary)} characters")
+        print(f"- Issue: {analysis.issue}/{analysis.year}")
+        print(f"- Summary: {analysis.summary}")
         print(f"- {len(analysis.announcements)} announcements")
         print(f"- {len(analysis.events)} events")
         print(f"- {len(analysis.important_dates)} important dates")
         
+        # Example output structure (from 2025-07-17):
+        # {
+        #   "issue": "134",
+        #   "year": "2025",
+        #   "id": "2025-07-17",
+        #   "summary": "Rathaus-Umschau 134/2025: Sanierung Markt Wiener Platz...",
+        #   "social_media_post": "# KI-Kommentar zur Rathaus-Umschau 134 vom 17.07.2025...",
+        #   "announcements": [...],
+        #   "events": [...],
+        #   "important_dates": [...]
+        # }
+        
         # Save parsed analysis to file
         with open(f"rathaus_umschau_{date}_parsed.json", "w") as f:
-            f.write(analysis.to_json())
+            f.write(analysis.to_json(indent=2))
         print(f"\nParsed analysis saved to rathaus_umschau_{date}_parsed.json")
         
     except Exception as e:

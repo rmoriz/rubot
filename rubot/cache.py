@@ -13,7 +13,9 @@ from datetime import datetime, timedelta
 class PDFCache:
     """Simple file-based cache for downloaded PDFs"""
 
-    def __init__(self, cache_dir: Optional[str] = None, max_age_hours: int = 24):
+    def __init__(
+        self, cache_dir: Optional[str] = None, max_age_hours: int = 24
+    ):
         """
         Initialize PDF cache.
 
