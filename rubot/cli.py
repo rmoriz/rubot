@@ -107,7 +107,8 @@ def main(date, output, prompt, model, config, no_cache, cache_dir, temperature, 
             pdf_path, 
             use_cache=app_config.cache_enabled,
             cache_dir=cache_directory,
-            verbose=verbose
+            verbose=verbose,
+            timeout=app_config.marker_timeout
         )
 
         if verbose:
@@ -127,7 +128,7 @@ def main(date, output, prompt, model, config, no_cache, cache_dir, temperature, 
                 click.echo(f"Prompt source: Unknown", err=True)
         
         llm_response = process_with_openrouter(
-            markdown_content, prompt, model, temperature, max_tokens, verbose
+            markdown_content, prompt, model, temperature, max_tokens, verbose, app_config.openrouter_timeout
         )
 
         # Step 4: Process and output LLM response

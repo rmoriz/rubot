@@ -41,6 +41,7 @@ def process_with_openrouter(
     temperature: float = 0.1,
     max_tokens: int = 4000,
     verbose: bool = False,
+    timeout: int = 120,
 ) -> str:
     """
     Process markdown content with OpenRouter API.
@@ -107,7 +108,7 @@ def process_with_openrouter(
         print("-" * 50, file=sys.stderr)
 
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=60)
+        response = requests.post(url, headers=headers, json=payload, timeout=timeout)
         
         if verbose:
             import sys

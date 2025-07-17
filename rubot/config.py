@@ -22,7 +22,9 @@ class RubotConfig:
     cache_dir: Optional[str] = None
 
     # Network settings
-    request_timeout: int = 30
+    request_timeout: int = 120
+    openrouter_timeout: int = 120
+    marker_timeout: int = 600
     max_retries: int = 3
     retry_delay: float = 1.0
 
@@ -71,7 +73,9 @@ class RubotConfig:
             default_model=model,
             default_prompt_file=os.getenv("DEFAULT_PROMPT_FILE"),
             cache_dir=os.getenv("CACHE_DIR"),
-            request_timeout=int(os.getenv("REQUEST_TIMEOUT", "30")),
+            request_timeout=int(os.getenv("REQUEST_TIMEOUT", "120")),
+            openrouter_timeout=int(os.getenv("OPENROUTER_TIMEOUT", "120")),
+            marker_timeout=int(os.getenv("MARKER_TIMEOUT", "600")),
             max_retries=int(os.getenv("MAX_RETRIES", "3")),
             retry_delay=float(os.getenv("RETRY_DELAY", "1.0")),
             cache_enabled=os.getenv("CACHE_ENABLED", "true").lower() == "true",
@@ -90,6 +94,8 @@ class RubotConfig:
             "default_prompt_file": self.default_prompt_file,
             "cache_dir": self.cache_dir,
             "request_timeout": self.request_timeout,
+            "openrouter_timeout": self.openrouter_timeout,
+            "marker_timeout": self.marker_timeout,
             "max_retries": self.max_retries,
             "retry_delay": self.retry_delay,
             "cache_enabled": self.cache_enabled,

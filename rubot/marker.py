@@ -10,7 +10,7 @@ from typing import Optional
 from .markdown_cache import MarkdownCache
 
 
-def convert_pdf_to_markdown(pdf_path: str, use_cache: bool = True, cache_dir: Optional[str] = None, verbose: bool = False) -> str:
+def convert_pdf_to_markdown(pdf_path: str, use_cache: bool = True, cache_dir: Optional[str] = None, verbose: bool = False, timeout: int = 600) -> str:
     """
     Convert PDF to Markdown using marker-pdf with caching.
 
@@ -62,7 +62,7 @@ def convert_pdf_to_markdown(pdf_path: str, use_cache: bool = True, cache_dir: Op
                 capture_output=True,
                 text=True,
                 check=True,
-                timeout=300  # 5 minutes timeout
+                timeout=timeout
             )
             
             # Find the generated markdown file
