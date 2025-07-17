@@ -33,15 +33,14 @@ class TestLLM:
         assert result == "Environment prompt"
     
     def test_load_prompt_default(self):
-        """Test loading default prompt"""
+        """Test loading prompt fails without configuration"""
         with patch('pathlib.Path.exists', return_value=False):
             with patch.dict(os.environ, {}, clear=True):
-                result = load_prompt(None)
-        
-        assert "Analyze the following Rathaus-Umschau content" in result
+                with pytest.raises(ValueError, match="System prompt must be specified"):
+                    load_prompt(None)
     
     @patch('rubot.llm.requests.post')
-    @patch.dict(os.environ, {'OPENROUTER_API_KEY': 'test_key'})
+    @patch.dict(os.environ, {'OPENROUTER_API_KEY': 'test_key', 'DEFAULT_SYSTEM_PROMPT': 'Test prompt'})
     def test_process_with_openrouter_success(self, mock_post):
         """Test successful OpenRouter API call"""
         # Mock successful response
@@ -75,18 +74,19 @@ class TestLLM:
                 process_with_openrouter("Test content", None, None)
     
     @patch('rubot.llm.requests.post')
-    @patch.dict(os.environ, {'OPENROUTER_API_KEY': 'test_key'})
+    @patch.dict(os.environ, {'OPENROUTER_API_KEY': 'test_key', 'DEFAULT_SYSTEM_PROMPT': 'Test prompt'})
     def test_process_with_openrouter_api_error(self, mock_post):
         """Test OpenRouter API call with error"""
         mock_post.side_effect = requests.exceptions.RequestException("API Error")
         
         with pytest.raises(requests.RequestException, match="OpenRouter API request failed"):
-            process_with_openrouter("Test content", None, None)
+            process_with_openrouter("Test content", None, "test-model")
     
     @patch('rubot.llm.requests.post')
     @patch.dict(os.environ, {
         'OPENROUTER_API_KEY': 'test_key',
-        'DEFAULT_MODEL': 'custom-model'
+        'DEFAULT_MODEL': 'custom-model',
+        'DEFAULT_SYSTEM_PROMPT': 'Test prompt'
     })
     def test_process_with_openrouter_default_model(self, mock_post):
         """Test OpenRouter API call with default model from environment"""
