@@ -136,9 +136,9 @@ class TestPDFCache:
             new_time = datetime.now().timestamp()
             
             with patch('pathlib.Path.stat') as mock_stat:
-                def stat_side_effect(self):
+                def stat_side_effect(path_self):
                     mock_stat_result = MagicMock()
-                    if self.name == "old.pdf":
+                    if path_self.name == "old.pdf":
                         mock_stat_result.st_mtime = old_time
                     else:
                         mock_stat_result.st_mtime = new_time
