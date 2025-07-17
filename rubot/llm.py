@@ -33,7 +33,7 @@ def load_prompt(prompt_path: Optional[str]) -> str:
     raise ValueError("System prompt must be specified either via prompt file or DEFAULT_SYSTEM_PROMPT environment variable")
 
 
-@retry_on_failure(max_retries=2, delay=2.0, exceptions=(requests.RequestException,))
+@retry_on_failure(max_retries=2, delay=10.0, exceptions=(requests.RequestException,))
 def process_with_openrouter(
     markdown_content: str,
     prompt_path: Optional[str],
