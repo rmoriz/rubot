@@ -14,7 +14,7 @@ class PDFCache:
     """Simple file-based cache for downloaded PDFs"""
 
     def __init__(
-        self, cache_dir: Optional[str] = None, max_age_hours: int = 24
+        self, cache_dir: Optional[str] = None, max_age_hours: int = 24, cache_root: Optional[str] = None
     ):
         """
         Initialize PDF cache.
@@ -22,12 +22,15 @@ class PDFCache:
         Args:
             cache_dir: Directory for cache files (default: system temp)
             max_age_hours: Maximum age of cached files in hours
+            cache_root: Root directory for all cache files (optional, overrides cache_dir)
         """
-        if cache_dir is None:
+        if cache_root:
+            cache_dir = os.path.join(cache_root, "pdf_cache")
+        elif cache_dir is None:
             cache_dir = os.path.join(tempfile.gettempdir(), "rubot_cache")
 
         self.cache_dir = Path(cache_dir)
-        self.cache_dir.mkdir(exist_ok=True)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.max_age = timedelta(hours=max_age_hours)
 
     def _get_cache_key(self, url: str) -> str:

@@ -15,7 +15,7 @@ class MarkdownCache:
     """Cache for PDF to Markdown conversion results"""
 
     def __init__(
-        self, cache_dir: Optional[str] = None, max_age_hours: int = 168
+        self, cache_dir: Optional[str] = None, max_age_hours: int = 168, cache_root: Optional[str] = None
     ):  # 1 week default
         """
         Initialize Markdown cache.
@@ -23,12 +23,15 @@ class MarkdownCache:
         Args:
             cache_dir: Directory for cache files (default: system temp)
             max_age_hours: Maximum age of cached files in hours (default: 1 week)
+            cache_root: Root directory for all cache files (optional, overrides cache_dir)
         """
-        if cache_dir is None:
+        if cache_root:
+            cache_dir = os.path.join(cache_root, "markdown_cache")
+        elif cache_dir is None:
             cache_dir = os.path.join(tempfile.gettempdir(), "rubot_markdown_cache")
 
         self.cache_dir = Path(cache_dir)
-        self.cache_dir.mkdir(exist_ok=True)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.max_age = timedelta(hours=max_age_hours)
 
     def _get_cache_key(self, pdf_path: str) -> str:

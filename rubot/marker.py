@@ -13,6 +13,7 @@ def convert_pdf_to_markdown(
     pdf_path: str,
     use_cache: bool = True,
     cache_dir: Optional[str] = None,
+    cache_root: Optional[str] = None,
     verbose: bool = False,
     timeout: int = 600,
 ) -> str:
@@ -32,7 +33,7 @@ def convert_pdf_to_markdown(
         subprocess.CalledProcessError: If marker-pdf conversion fails
         FileNotFoundError: If marker-pdf is not installed
     """
-    cache = _setup_markdown_cache(use_cache, cache_dir)
+    cache = _setup_markdown_cache(use_cache, cache_dir, cache_root)
 
     # Try to get from cache first
     if cache:
@@ -43,7 +44,7 @@ def convert_pdf_to_markdown(
         _log_cache_miss(pdf_path)
 
     try:
-        content = _run_marker_conversion(pdf_path, timeout)
+        content = _run_marker_conversion(pdf_path, timeout, cache_root)
 
         # Cache the result if caching is enabled
         if cache:
@@ -63,12 +64,14 @@ def convert_pdf_to_markdown(
 
 
 def _setup_markdown_cache(
-    use_cache: bool, cache_dir: Optional[str]
+    use_cache: bool, cache_dir: Optional[str], cache_root: Optional[str] = None
 ) -> Optional[MarkdownCache]:
     """Setup markdown cache if enabled."""
     if not use_cache:
         return None
-    return MarkdownCache(cache_dir, max_age_hours=168)  # 1 week
+    import os
+    cache_root = os.getenv("CACHE_ROOT")
+    return MarkdownCache(cache_dir, max_age_hours=168, cache_root=cache_root)  # 1 week
 
 
 def _log_cache_hit(cache: MarkdownCache, pdf_path: str) -> None:
@@ -87,11 +90,13 @@ def _log_cache_miss(pdf_path: str) -> None:
     print(f"Markdown Cache MISS: Converting {pdf_path}...", file=sys.stderr)
 
 
-def _run_marker_conversion(pdf_path: str, timeout: int) -> str:
+def _run_marker_conversion(pdf_path: str, timeout: int, cache_root: Optional[str] = None) -> str:
     """Run marker-pdf conversion and return content."""
-    # Use /tmp/marker-pdf as the temporary directory to avoid permission issues
-    marker_temp_dir = Path("/tmp/marker-pdf")
-    marker_temp_dir.mkdir(exist_ok=True)
+    # Use cache_root for temporary directory
+    import os
+    cache_root = cache_root or os.getenv("CACHE_ROOT", "/tmp")
+    marker_temp_dir = Path(cache_root) / "marker"
+    marker_temp_dir.mkdir(parents=True, exist_ok=True)
     
     with tempfile.TemporaryDirectory(dir=str(marker_temp_dir)) as temp_dir:
         output_dir = Path(temp_dir)

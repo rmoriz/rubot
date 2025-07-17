@@ -20,6 +20,7 @@ class RubotConfig:
     # File paths
     default_prompt_file: Optional[str] = None
     cache_dir: Optional[str] = None
+    cache_root: Optional[str] = None
 
     # Network settings
     request_timeout: int = 120
@@ -72,6 +73,7 @@ class RubotConfig:
             default_model=model,
             default_prompt_file=os.getenv("DEFAULT_PROMPT_FILE"),
             cache_dir=os.getenv("CACHE_DIR"),
+            cache_root=os.getenv("CACHE_ROOT"),
             request_timeout=int(os.getenv("REQUEST_TIMEOUT", "120")),
             openrouter_timeout=int(os.getenv("OPENROUTER_TIMEOUT", "120")),
             marker_timeout=int(os.getenv("MARKER_TIMEOUT", "600")),
@@ -91,6 +93,7 @@ class RubotConfig:
             "default_model": self.default_model,
             "default_prompt_file": self.default_prompt_file,
             "cache_dir": self.cache_dir,
+            "cache_root": self.cache_root,
             "request_timeout": self.request_timeout,
             "openrouter_timeout": self.openrouter_timeout,
             "marker_timeout": self.marker_timeout,

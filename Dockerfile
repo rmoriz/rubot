@@ -53,8 +53,8 @@ RUN apt-get update && apt-get install -y \
 # Create cache directory and set permissions before switching user
 RUN mkdir -p /app/cache && chown rubot:rubot /app/cache
 
-# Create marker cache directory in /tmp with proper permissions
-RUN mkdir -p /tmp/marker-pdf /tmp/cache /tmp/huggingface && chown -R rubot:rubot /tmp/marker-pdf /tmp/cache /tmp/huggingface
+# Create unified cache directory with proper permissions
+RUN mkdir -p /tmp/cache /tmp/cache/huggingface /tmp/cache/marker && chown -R rubot:rubot /tmp/cache
 
 # Copy installed packages from builder
 COPY --from=builder /root/.local /home/rubot/.local
@@ -65,7 +65,8 @@ COPY --from=builder /app /app
 # Set up environment
 ENV PATH=/home/rubot/.local/bin:$PATH
 ENV PYTHONPATH=/home/rubot/.local/lib/python3.13/site-packages
-ENV HF_HOME=/tmp/huggingface
+ENV CACHE_ROOT=/tmp/cache
+ENV HF_HOME=/tmp/cache/huggingface
 ENV XDG_CACHE_HOME=/tmp/cache
 
 WORKDIR /app

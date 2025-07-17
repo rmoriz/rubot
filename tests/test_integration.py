@@ -60,7 +60,7 @@ class TestIntegration:
             "2024-01-15", 30
         )  # timeout parameter is passed
         mock_convert.assert_called_once_with(
-            "/tmp/test.pdf", use_cache=False, cache_dir=None, verbose=False, timeout=60
+            "/tmp/test.pdf", use_cache=False, cache_dir=None, cache_root=None, verbose=False, timeout=60
         )
         mock_llm.assert_called_once()
 

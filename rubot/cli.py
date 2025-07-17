@@ -148,10 +148,13 @@ def _setup_cache(
         return None
 
     cache_directory = cache_dir or app_config.cache_dir
-    if not cache_directory:
-        cache_directory = os.path.join(tempfile.gettempdir(), "rubot_cache")
-
-    cache = PDFCache(cache_directory, app_config.cache_max_age_hours)
+    cache_root = app_config.cache_root
+    
+    cache = PDFCache(
+        cache_directory, 
+        app_config.cache_max_age_hours, 
+        cache_root=cache_root
+    )
     if verbose:
         click.echo(f"Cache enabled: {cache.cache_dir}", err=True)
 
@@ -203,6 +206,7 @@ def _convert_to_markdown(
         pdf_path,
         use_cache=app_config.cache_enabled,
         cache_dir=cache_dir,
+        cache_root=app_config.cache_root,
         verbose=verbose,
         timeout=app_config.marker_timeout,
     )
