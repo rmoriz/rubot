@@ -332,6 +332,15 @@ We welcome contributions! Here's how to get started:
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
+### ⚠️ Important Licensing Notice
+
+**Commercial Usage Restrictions**: This project uses `marker-pdf` for PDF to Markdown conversion. Parts of marker-pdf are licensed under **CC-BY-NC-SA-4.0**, which **restricts commercial usage**. 
+
+🔗 **For commercial use**, please review the licensing details and commercial options at:  
+**[marker-pdf Commercial Usage Guide](https://github.com/datalab-to/marker/blob/master/README.md#commercial-usage)**
+
+If you plan to use rubot in a commercial environment, ensure you comply with marker-pdf's licensing requirements or consider alternative PDF processing solutions.
+
 ## 🆘 Support & Community
 
 <div align="center">
