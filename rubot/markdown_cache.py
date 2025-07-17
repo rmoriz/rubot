@@ -35,16 +35,19 @@ class MarkdownCache:
         self.max_age = timedelta(hours=max_age_hours)
 
     def _get_cache_key(self, pdf_path: str) -> str:
-        """Generate cache key from PDF file path and modification time"""
+        """Generate cache key from PDF file content hash"""
         # Get file stats for cache invalidation
         pdf_file = Path(pdf_path)
         if not pdf_file.exists():
             raise FileNotFoundError(f"PDF file not found: {pdf_path}")
 
-        # Include file size and modification time in cache key
-        stat = pdf_file.stat()
-        cache_input = f"{pdf_path}_{stat.st_size}_{stat.st_mtime}"
-        return hashlib.md5(cache_input.encode()).hexdigest()
+        # Use file content hash for stable cache key
+        import hashlib
+        hasher = hashlib.md5()
+        with open(pdf_path, 'rb') as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hasher.update(chunk)
+        return hasher.hexdigest()
 
     def _get_cache_paths(self, cache_key: str) -> Tuple[Path, Path]:
         """Get paths for markdown content and metadata files"""

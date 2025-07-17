@@ -41,6 +41,7 @@ graph LR
 
 - 🐍 **Python 3.13+**
 - 🔑 **OpenRouter API key** ([Get yours here](https://openrouter.ai/))
+- 💾 **5-8GB RAM** (for PDF conversion with `marker-pdf`, also in Docker)
 
 ### ⚡ One-Line Installation
 
