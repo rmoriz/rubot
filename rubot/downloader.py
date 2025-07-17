@@ -42,8 +42,15 @@ def download_pdf(date: str, timeout: int = 30) -> str:
         response = requests.get(url, timeout=timeout)
         response.raise_for_status()
 
-        # Create temporary file
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp_file:
+        # Create temporary file in CACHE_ROOT
+        import os
+        cache_root = os.getenv("CACHE_ROOT", tempfile.gettempdir())
+        cache_dir = os.path.join(cache_root, "downloads")
+        os.makedirs(cache_dir, exist_ok=True)
+        
+        with tempfile.NamedTemporaryFile(
+            suffix=".pdf", delete=False, dir=cache_dir
+        ) as tmp_file:
             tmp_file.write(response.content)
             return tmp_file.name
 
