@@ -12,7 +12,10 @@
       "Bash(gh run list:*)",
       "Bash(gh run view:*)",
       "Bash(docker build:*)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(mv:*)",
+      "Bash(git commit:*)",
+      "WebFetch(domain:pypi.org)"
     ],
     "deny": []
   }

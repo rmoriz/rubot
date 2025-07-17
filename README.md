@@ -188,14 +188,14 @@ services:
 
 rubot funktioniert mit **jedem OpenRouter-kompatiblen Modell**. Wählen Sie basierend auf Ihren Bedürfnissen:
 
-### 🏆 Empfohlene kostenlose Modelle
+### 🏆 Empfohlene Modelle
 
 | Modell | Anbieter | Beste für | Kosten |
 |-------|----------|----------|------|
 | `moonshotai/kimi-k2:free` | Moonshot AI | 📝 Textanalyse, Nachdenken | Kostenlos |
-| `x-ai/grok-3-mini` | xAI | 🎯 Schnell, zuverlässig | Kostenlos |
+| `x-ai/grok-3-mini` | xAI | 🎯 Schnell, zuverlässig | Billig |
 
-> 💡 **Tipp**: Diese kostenlosen Modelle bieten exzellente Leistung für Rathaus-Umschau-Analysen. Beginnen Sie mit `moonshotai/kimi-k2:free` für umfassende Textanalyse.
+> 💡 **Tipp**: Starten Sie mit dem kostenlosen `moonshotai/kimi-k2:free` für Textanalyse. `x-ai/grok-3-mini` ist schneller aber kostenpflichtig.
 
 📋 Sehen Sie die vollständige Liste unter [OpenRouter Models](https://openrouter.ai/models)
 
