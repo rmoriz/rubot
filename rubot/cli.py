@@ -143,17 +143,36 @@ def main(date, output, prompt, model, config, no_cache, cache_dir, temperature, 
                 
                 # Try to parse the content as JSON and replace it in the response
                 try:
-                    # Remove markdown code block wrapper if present
+                    # More robust JSON extraction from markdown
+                    import re
                     cleaned_content = actual_content.strip()
-                    if cleaned_content.startswith('```json'):
-                        cleaned_content = cleaned_content[7:]  # Remove ```json
-                    elif cleaned_content.startswith('```'):
-                        cleaned_content = cleaned_content[3:]   # Remove ```
                     
-                    if cleaned_content.endswith('```'):
-                        cleaned_content = cleaned_content[:-3]  # Remove trailing ```
+                    # Try to find JSON block in markdown code blocks
+                    json_pattern = r'```(?:json)?\s*\n?(.*?)\n?```'
+                    json_match = re.search(json_pattern, cleaned_content, re.DOTALL)
                     
-                    cleaned_content = cleaned_content.strip()
+                    if json_match:
+                        # Found JSON in code block
+                        cleaned_content = json_match.group(1).strip()
+                    else:
+                        # No code block, try to clean manually
+                        if cleaned_content.startswith('```json'):
+                            cleaned_content = cleaned_content[7:]  # Remove ```json
+                        elif cleaned_content.startswith('```'):
+                            cleaned_content = cleaned_content[3:]   # Remove ```
+                        
+                        if cleaned_content.endswith('```'):
+                            cleaned_content = cleaned_content[:-3]  # Remove trailing ```
+                        
+                        cleaned_content = cleaned_content.strip()
+                    
+                    # Additional cleanup: remove any leading/trailing non-JSON text
+                    # Look for JSON object boundaries
+                    start_idx = cleaned_content.find('{')
+                    end_idx = cleaned_content.rfind('}')
+                    
+                    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+                        cleaned_content = cleaned_content[start_idx:end_idx+1]
                     
                     content_json = json.loads(cleaned_content)
                     
