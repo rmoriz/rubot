@@ -77,7 +77,7 @@ class TestRetry:
         def test_function():
             nonlocal call_count
             call_count += 1
-            if call_count <= 3:  # Changed to <= so it fails on all attempts
+            if call_count <= 4:  # Fail on all 4 attempts (1 + 3 retries)
                 raise requests.RequestException("Error")
             return "success"
         
