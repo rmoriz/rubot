@@ -239,7 +239,7 @@ def _process_with_llm(
 ) -> str:
     """Process content with LLM."""
     click.echo("Processing with LLM...", err=True)
-    return process_with_openrouter(
+    result = process_with_openrouter(
         markdown_content,
         prompt,
         model,
@@ -248,6 +248,7 @@ def _process_with_llm(
         verbose,
         app_config.openrouter_timeout,
     )
+    return str(result)
 
 
 def _handle_output(
