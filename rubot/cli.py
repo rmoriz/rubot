@@ -143,36 +143,80 @@ def main(date, output, prompt, model, config, no_cache, cache_dir, temperature, 
                 
                 # Try to parse the content as JSON and replace it in the response
                 try:
-                    # More robust JSON extraction from markdown
+                    # Robust JSON extraction using multiple strategies
                     import re
                     cleaned_content = actual_content.strip()
                     
-                    # Try to find JSON block in markdown code blocks
-                    json_pattern = r'```(?:json)?\s*\n?(.*?)\n?```'
-                    json_match = re.search(json_pattern, cleaned_content, re.DOTALL)
+                    # Strategy 1: Extract from markdown code blocks (most robust)
+                    code_block_patterns = [
+                        r'```json\s*\n(.*?)\n```',  # ```json ... ```
+                        r'```\s*\n(.*?)\n```',     # ``` ... ```
+                        r'`([^`]*)`',               # `...` (single backticks)
+                    ]
                     
-                    if json_match:
-                        # Found JSON in code block
-                        cleaned_content = json_match.group(1).strip()
+                    json_content = None
+                    for pattern in code_block_patterns:
+                        matches = re.findall(pattern, cleaned_content, re.DOTALL)
+                        for match in matches:
+                            candidate = match.strip()
+                            # Check if this looks like JSON (starts with { or [)
+                            if candidate.startswith(('{', '[')):
+                                try:
+                                    # Test if it's valid JSON
+                                    json.loads(candidate)
+                                    json_content = candidate
+                                    break
+                                except json.JSONDecodeError:
+                                    continue
+                        if json_content:
+                            break
+                    
+                    # Strategy 2: Look for JSON object boundaries in the entire text
+                    if not json_content:
+                        # Find all potential JSON objects/arrays
+                        json_candidates = []
+                        
+                        # Look for objects {...}
+                        brace_count = 0
+                        start_idx = -1
+                        for i, char in enumerate(cleaned_content):
+                            if char == '{':
+                                if brace_count == 0:
+                                    start_idx = i
+                                brace_count += 1
+                            elif char == '}':
+                                brace_count -= 1
+                                if brace_count == 0 and start_idx != -1:
+                                    json_candidates.append(cleaned_content[start_idx:i+1])
+                        
+                        # Look for arrays [...]
+                        bracket_count = 0
+                        start_idx = -1
+                        for i, char in enumerate(cleaned_content):
+                            if char == '[':
+                                if bracket_count == 0:
+                                    start_idx = i
+                                bracket_count += 1
+                            elif char == ']':
+                                bracket_count -= 1
+                                if bracket_count == 0 and start_idx != -1:
+                                    json_candidates.append(cleaned_content[start_idx:i+1])
+                        
+                        # Test candidates for valid JSON
+                        for candidate in json_candidates:
+                            try:
+                                json.loads(candidate.strip())
+                                json_content = candidate.strip()
+                                break
+                            except json.JSONDecodeError:
+                                continue
+                    
+                    # Use the found JSON content or fall back to original
+                    if json_content:
+                        cleaned_content = json_content
                     else:
-                        # No code block, try to clean manually
-                        if cleaned_content.startswith('```json'):
-                            cleaned_content = cleaned_content[7:]  # Remove ```json
-                        elif cleaned_content.startswith('```'):
-                            cleaned_content = cleaned_content[3:]   # Remove ```
-                        
-                        if cleaned_content.endswith('```'):
-                            cleaned_content = cleaned_content[:-3]  # Remove trailing ```
-                        
-                        cleaned_content = cleaned_content.strip()
-                    
-                    # Additional cleanup: remove any leading/trailing non-JSON text
-                    # Look for JSON object boundaries
-                    start_idx = cleaned_content.find('{')
-                    end_idx = cleaned_content.rfind('}')
-                    
-                    if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
-                        cleaned_content = cleaned_content[start_idx:end_idx+1]
+                        # Last resort: try the entire content as-is
+                        cleaned_content = cleaned_content
                     
                     content_json = json.loads(cleaned_content)
                     
