@@ -151,11 +151,11 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
-
       - name: Create and push multiarch manifest
         run: |
           IMAGE=ghcr.io/${{ github.repository }}
-          for TAG in $(echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n'); do
+          for FULL in $(echo "${{ steps.meta.outputs.tags }}" | tr ',' '\n'); do
+            TAG=${FULL##*:}  # entfernt alles vor dem letzten ":" → nur der Tag bleibt
             docker buildx imagetools create \
               --tag $IMAGE:$TAG \
               $IMAGE:amd64 \
