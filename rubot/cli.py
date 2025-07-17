@@ -341,10 +341,17 @@ def _extract_json_from_content(content: str) -> Optional[str]:
 def _find_json_candidates(content: str) -> list[str]:
     """Find potential JSON objects/arrays in content."""
     candidates = []
+    candidates.extend(_find_json_objects(content))
+    candidates.extend(_find_json_arrays(content))
+    return candidates
 
-    # Look for objects {...}
+
+def _find_json_objects(content: str) -> list[str]:
+    """Find JSON objects {...} in content."""
+    candidates = []
     brace_count = 0
     start_idx = -1
+
     for i, char in enumerate(content):
         if char == "{":
             if brace_count == 0:
@@ -355,9 +362,15 @@ def _find_json_candidates(content: str) -> list[str]:
             if brace_count == 0 and start_idx != -1:
                 candidates.append(content[start_idx : i + 1])
 
-    # Look for arrays [...]
+    return candidates
+
+
+def _find_json_arrays(content: str) -> list[str]:
+    """Find JSON arrays [...] in content."""
+    candidates = []
     bracket_count = 0
     start_idx = -1
+
     for i, char in enumerate(content):
         if char == "[":
             if bracket_count == 0:
