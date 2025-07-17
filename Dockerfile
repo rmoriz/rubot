@@ -1,46 +1,73 @@
-# Multi-stage build for smaller production image
-FROM python:3.13-slim as base
+# Multi-stage build for optimized production image
+FROM python:3.13-alpine as builder
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Install build dependencies in builder stage
+RUN apk add --no-cache \
     git \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+    gcc \
+    musl-dev \
+    libffi-dev \
+    python3-dev \
+    && pip install --upgrade pip
 
 WORKDIR /app
 
-# Copy requirements first for better caching
+# Copy and install requirements
 COPY requirements.txt .
+RUN pip install --no-cache-dir --user -r requirements.txt
 
-# Install Python dependencies
-RUN pip install --upgrade pip && \
-    pip install -r requirements.txt
+# Install marker-pdf in builder stage
+RUN pip install --no-cache-dir --user git+https://github.com/datalab-to/marker.git
 
-# Development stage
-FROM base as dev
-RUN pip install -e ".[dev]"
+# Copy application code and install
 COPY . .
-CMD ["bash"]
+RUN pip install --no-cache-dir --user -e .
 
-# Production stage
-FROM base as production
+# Production stage - minimal runtime image
+FROM python:3.13-alpine as production
 
-# Install marker-pdf
-RUN pip install git+https://github.com/datalab-to/marker.git
+# Install only runtime dependencies
+RUN apk add --no-cache \
+    libffi \
+    && adduser -D -s /bin/sh rubot
+
+# Copy installed packages from builder
+COPY --from=builder /root/.local /home/rubot/.local
 
 # Copy application code
-COPY . .
+COPY --from=builder /app /app
 
-# Install the package
-RUN pip install -e .
+# Set up environment
+ENV PATH=/home/rubot/.local/bin:$PATH
+ENV PYTHONPATH=/home/rubot/.local/lib/python3.13/site-packages:$PYTHONPATH
 
-# Create non-root user
-RUN useradd --create-home --shell /bin/bash rubot && \
-    chown -R rubot:rubot /app
-
+WORKDIR /app
 USER rubot
 
 # Create cache directory
 RUN mkdir -p /app/cache
 
 ENTRYPOINT ["python", "-m", "rubot"]
+
+# Development stage - for local development
+FROM python:3.13-alpine as dev
+
+RUN apk add --no-cache \
+    git \
+    gcc \
+    musl-dev \
+    libffi-dev \
+    python3-dev \
+    bash \
+    && pip install --upgrade pip
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir git+https://github.com/datalab-to/marker.git
+
+COPY . .
+RUN pip install --no-cache-dir -e ".[dev]"
+
+CMD ["bash"]

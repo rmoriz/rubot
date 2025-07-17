@@ -52,4 +52,22 @@ htmlcov/
 docs/
 README.md
 CHANGELOG.md
-LICENSE
+
+# Tests and development files
+tests/
+.github/
+scripts/
+examples/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Docker files
+Dockerfile
+.dockerignore
+docker-compose.yml
