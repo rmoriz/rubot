@@ -137,7 +137,7 @@ def _validate_prompt_and_model(
                 "variable must be configured"
             )
 
-    return prompt, model
+    return (prompt, model)
 
 
 def _setup_cache(
@@ -319,7 +319,7 @@ def _extract_json_from_content(content: str) -> Optional[str]:
                     import json
 
                     json.loads(candidate)
-                    return candidate
+                    return str(candidate)
                 except json.JSONDecodeError:
                     continue
 
@@ -331,7 +331,7 @@ def _extract_json_from_content(content: str) -> Optional[str]:
             import json
 
             json.loads(candidate.strip())
-            return candidate.strip()
+            return str(candidate.strip())
         except json.JSONDecodeError:
             continue
 
