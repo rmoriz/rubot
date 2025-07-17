@@ -28,10 +28,11 @@ class TestRubotConfig:
         assert config.cache_enabled is False
     
     def test_from_env_missing_api_key(self):
-        """Test config loading uses defaults when API key missing"""
+        """Test config loading fails without API key"""
         with patch.dict(os.environ, {}, clear=True):
-            config = RubotConfig.from_env()
-            assert config.openrouter_api_key == "your_openrouter_api_key_here"
+            with patch('pathlib.Path.exists', return_value=False):  # Ensure no .env file
+                with pytest.raises(ValueError, match="OPENROUTER_API_KEY environment variable is required"):
+                    RubotConfig.from_env()
     
     @patch.dict(os.environ, {
         'OPENROUTER_API_KEY': 'test_key',
@@ -39,19 +40,21 @@ class TestRubotConfig:
     })
     def test_from_env_defaults(self):
         """Test config loading with required values and defaults"""
-        config = RubotConfig.from_env()
-        
-        assert config.openrouter_api_key == 'test_key'
-        assert config.default_model == 'test/model'
-        assert config.request_timeout == 30
-        assert config.cache_enabled is True
-        assert config.max_pdf_pages == 100
+        with patch('pathlib.Path.exists', return_value=False):  # Ensure no .env file
+            config = RubotConfig.from_env()
+            
+            assert config.openrouter_api_key == 'test_key'
+            assert config.default_model == 'test/model'
+            assert config.request_timeout == 120  # Default value when no REQUEST_TIMEOUT set
+            assert config.cache_enabled is True
+            assert config.max_pdf_pages == 100
     
     def test_from_env_missing_model(self):
-        """Test config loading uses defaults when model missing"""
+        """Test config loading fails without model"""
         with patch.dict(os.environ, {'OPENROUTER_API_KEY': 'test_key'}):
-            config = RubotConfig.from_env()
-            assert config.default_model == "moonshotai/kimi-k2:free"
+            with patch('pathlib.Path.exists', return_value=False):  # Ensure no .env file
+                with pytest.raises(ValueError, match="DEFAULT_MODEL environment variable is required"):
+                    RubotConfig.from_env()
     
     @patch.dict(os.environ, {'OPENROUTER_API_KEY': 'test_key', 'DEFAULT_MODEL': 'test/model'})
     def test_to_dict_masks_api_key(self):
@@ -64,7 +67,7 @@ class TestRubotConfig:
     
     @patch('pathlib.Path.exists')
     @patch('rubot.config.load_dotenv')
-    @patch.dict(os.environ, {'OPENROUTER_API_KEY': 'test_key'})
+    @patch.dict(os.environ, {'OPENROUTER_API_KEY': 'test_key', 'DEFAULT_MODEL': 'file/model'})
     def test_from_env_with_file(self, mock_load_dotenv, mock_exists):
         """Test config loading with .env file"""
         mock_exists.return_value = True
@@ -73,3 +76,4 @@ class TestRubotConfig:
         
         mock_load_dotenv.assert_called_once_with('custom.env')
         assert config.openrouter_api_key == 'test_key'
+        assert config.default_model == 'file/model'
