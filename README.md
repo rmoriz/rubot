@@ -2,167 +2,169 @@
 
 # 🤖 rubot
 
-**AI-Powered Munich Rathaus-Umschau PDF Processor**
+**KI-gestützter Münchener Rathaus-Umschau PDF-Prozessor**
 
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Docker](https://img.shields.io/badge/docker-available-blue.svg)](https://github.com/rmoriz/rubot/pkgs/container/rubot)
 [![Tests](https://github.com/rmoriz/rubot/workflows/Test%20rubot/badge.svg)](https://github.com/rmoriz/rubot/actions)
 
-*Automate the extraction and analysis of Munich's official municipal announcements*
+*Automatisiere die Extraktion und Analyse der offiziellen städtischen Ankündigungen Münchens*
 
-[🚀 Quick Start](#-quick-start) • [📖 Documentation](#-configuration) • [🐳 Docker](#-docker-usage) • [🤝 Contributing](#-contributing)
+📖 [English README](README_EN.md)
+
+[🚀 Schnellstart](#-schnellstart) • [📖 Dokumentation](#-konfiguration) • [🐳 Docker](#-docker-verwendung) • [🤝 Mitwirken](#-mitwirken)
 
 </div>
 
 ---
 
-## ✨ What is rubot?
+## ✨ Was ist rubot?
 
-`rubot` is a powerful CLI tool that transforms Munich's Rathaus-Umschau PDFs into structured, AI-analyzed data. Perfect for journalists, researchers, and citizens who want to stay informed about municipal decisions and events.
+`rubot` ist ein leistungsstarkes CLI-Tool, das die Rathaus-Umschau PDFs Münchens in strukturierte, KI-analysierte Daten umwandelt. Perfekt für Journalisten, Forscher und Bürger, die über städtische Entscheidungen und Veranstaltungen informiert bleiben wollen.
 
-### 🔄 How it works
+### 🔄 Wie es funktioniert
 
 ```mermaid
 graph LR
-    A[📄 PDF Download] --> B[📝 Markdown Conversion]
-    B --> C[🤖 AI Analysis]
-    C --> D[📊 JSON Output]
+    A[📄 PDF-Download] --> B[📝 Markdown-Konvertierung]
+    B --> C[🤖 KI-Analyse]
+    C --> D[📊 JSON-Ausgabe]
 ```
 
-1. **📥 Downloads** Rathaus-Umschau PDFs from Munich's official website
-2. **🔄 Converts** PDFs to clean Markdown using `marker-pdf`
-3. **🧠 Analyzes** content with your choice of AI model via OpenRouter
-4. **📤 Outputs** structured JSON with extracted announcements and events
+1. **📥 Lädt** Rathaus-Umschau PDFs von der offiziellen Münchner Website herunter
+2. **🔄 Konvertiert** PDFs in sauberes Markdown mit `marker-pdf`
+3. **🧠 Analysiert** Inhalt mit Ihrer Wahl eines KI-Modells über OpenRouter
+4. **📤 Gibt** strukturiertes JSON mit extrahierten Ankündigungen und Veranstaltungen aus
 
-## 🚀 Quick Start
+## 🚀 Schnellstart
 
-### 📋 Prerequisites
+### 📋 Voraussetzungen
 
 - 🐍 **Python 3.13+**
-- 🔑 **OpenRouter API key** ([Get yours here](https://openrouter.ai/))
+- 🔑 **OpenRouter API-Schlüssel** ([Hier erhalten](https://openrouter.ai/))
 
-### ⚡ One-Line Installation
+### ⚡ Einzeilige Installation
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/rmoriz/rubot/main/scripts/install.sh | bash
 ```
 
-### 🛠️ Manual Installation
+### 🛠️ Manuelle Installation
 
 <details>
-<summary>Click to expand manual installation steps</summary>
+<summary>Klicken für manuelle Installationsschritte</summary>
 
 ```bash
-# Clone the repository
+# Repository klonen
 git clone https://github.com/rmoriz/rubot.git
 cd rubot
 
-# Create virtual environment
+# Virtuelle Umgebung erstellen
 python -m venv rubot-env
-source rubot-env/bin/activate  # On Windows: rubot-env\Scripts\activate
+source rubot-env/bin/activate  # Unter Windows: rubot-env\Scripts\activate
 
-# Install dependencies
+# Abhängigkeiten installieren
 pip install -r requirements.txt
 pip install git+https://github.com/datalab-to/marker.git
 ```
 
 </details>
 
-## ⚙️ Configuration
+## ⚙️ Konfiguration
 
-Create a `.env` file with your settings:
+Erstellen Sie eine `.env`-Datei mit Ihren Einstellungen:
 
 <details>
-<summary>📝 <strong>Required Configuration</strong></summary>
+<summary>📝 <strong>Erforderliche Konfiguration</strong></summary>
 
 ```bash
-# 🔑 API Configuration (Required)
-OPENROUTER_API_KEY=your_openrouter_api_key_here
-DEFAULT_MODEL=your_preferred_model_here
+# 🔑 API-Konfiguration (erforderlich)
+OPENROUTER_API_KEY=ihr_openrouter_api_schlüssel_hier
+DEFAULT_MODEL=ihr_bevorzugtes_modell_hier
 
-# 💬 System Prompt (Required - choose one)
-DEFAULT_SYSTEM_PROMPT="Analyze the following Rathaus-Umschau content..."
-# OR use a prompt file:
+# 💬 System-Prompt (erforderlich - wählen Sie einen)
+DEFAULT_SYSTEM_PROMPT="Analysieren Sie den folgenden Rathaus-Umschau-Inhalt..."
+# ODER eine Prompt-Datei verwenden:
 # DEFAULT_PROMPT_FILE=prompts/default.txt
 ```
 
 </details>
 
 <details>
-<summary>🔧 <strong>Optional Configuration</strong></summary>
+<summary>🔧 <strong>Optionale Konfiguration</strong></summary>
 
 ```bash
-# 🌐 Network Settings
+# 🌐 Netzwerk-Einstellungen
 REQUEST_TIMEOUT=120
 OPENROUTER_TIMEOUT=120
 MARKER_TIMEOUT=600
 MAX_RETRIES=3
 RETRY_DELAY=1.0
 
-# 💾 Cache Settings
+# 💾 Cache-Einstellungen
 CACHE_ENABLED=true
 CACHE_DIR=
 CACHE_MAX_AGE_HOURS=24
 
-# 📄 Processing Settings
+# 📄 Verarbeitungseinstellungen
 MAX_PDF_PAGES=100
 
-# 📊 Output Settings
+# 📊 Ausgabeeinstellungen
 OUTPUT_FORMAT=json
 JSON_INDENT=2
 ```
 
 </details>
 
-## 🎯 Usage
+## 🎯 Verwendung
 
-### 🏃‍♂️ Basic Usage
+### 🏃‍♂️ Grundlegende Verwendung
 
 ```bash
-# 📅 Process today's Rathaus-Umschau
+# 📅 Heutige Rathaus-Umschau verarbeiten
 rubot
 
-# 🗓️ Process specific date
+# 🗓️ Bestimmtes Datum verarbeiten
 rubot --date 2025-07-17
 
-# 💾 Save to file
-rubot --date 2025-07-17 --output result.json
+# 💾 In Datei speichern
+rubot --date 2025-07-17 --output ergebnis.json
 
-# 🎨 Use custom prompt and model
-rubot --date 2025-07-17 --prompt custom_prompt.txt --model gpt-4
+# 🎨 Benutzerdefinierten Prompt und Modell verwenden
+rubot --date 2025-07-17 --prompt benutzer_prompt.txt --model gpt-4
 ```
 
-### 🛠️ CLI Options
+### 🛠️ CLI-Optionen
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--date` | 📅 Date in YYYY-MM-DD format | today |
-| `--output` | 📁 Output file path | stdout |
-| `--prompt` | 📝 Path to system prompt file | - |
-| `--model` | 🤖 OpenRouter model ID | from config |
-| `--temperature` | 🌡️ LLM temperature | 0.1 |
-| `--max-tokens` | 🔢 Maximum tokens for response | 4000 |
-| `--verbose` | 🔍 Enable debug output | false |
-| `--help` | ❓ Show help message | - |
+| Option | Beschreibung | Standard |
+|--------|-------------|----------|
+| `--date` | 📅 Datum im JJJJ-MM-TT-Format | heute |
+| `--output` | 📁 Ausgabedateipfad | stdout |
+| `--prompt` | 📝 Pfad zur System-Prompt-Datei | - |
+| `--model` | 🤖 OpenRouter-Modell-ID | aus Konfiguration |
+| `--temperature` | 🌡️ LLM-Temperatur | 0.1 |
+| `--max-tokens` | 🔢 Maximale Tokens für Antwort | 4000 |
+| `--verbose` | 🔍 Debug-Ausgabe aktivieren | false |
+| `--help` | ❓ Hilfemeldung anzeigen | - |
 
-## 🐳 Docker Usage
+## 🐳 Docker-Verwendung
 
-### 🚢 Using Pre-built Image
+### 🚚 Vorgefertigtes Image verwenden
 
 ```bash
-docker run --rm \
-  -e OPENROUTER_API_KEY=your_key \
-  -e DEFAULT_MODEL=your_model \
-  -v $(pwd)/output:/app/output \
-  ghcr.io/rmoriz/rubot:latest \
-  --date 2024-01-15 --output /app/output/result.json
+docker run --rm \\
+  -e OPENROUTER_API_KEY=ihr_schlüssel \\
+  -e DEFAULT_MODEL=ihr_modell \\
+  -v $(pwd)/output:/app/output \\
+  ghcr.io/rmoriz/rubot:latest \\
+  --date 2024-01-15 --output /app/output/ergebnis.json
 ```
 
 ### 🐙 Docker Compose
 
 <details>
-<summary>Click to see docker-compose.yml</summary>
+<summary>Klicken für docker-compose.yml</summary>
 
 ```yaml
 version: '3.8'
@@ -177,34 +179,32 @@ services:
     volumes:
       - ./cache:/app/cache
       - ./output:/app/output
-    command: ["--date", "2024-01-15", "--output", "/app/output/result.json", "--verbose"]
+    command: ["--date", "2024-01-15", "--output", "/app/output/ergebnis.json", "--verbose"]
 ```
 
 </details>
 
-## 🧠 Model Selection
+## 🧠 Modell-Auswahl
 
-rubot works with **any OpenRouter-compatible model**. Choose based on your needs:
+rubot funktioniert mit **jedem OpenRouter-kompatiblen Modell**. Wählen Sie basierend auf Ihren Bedürfnissen:
 
-### 🏆 Popular Models
+### 🏆 Empfohlene kostenlose Modelle
 
-| Model | Provider | Best For | Cost |
+| Modell | Anbieter | Beste für | Kosten |
 |-------|----------|----------|------|
-| `anthropic/claude-3-5-sonnet` | Anthropic | 📝 Text analysis, reasoning | $$$ |
-| `openai/gpt-4o` | OpenAI | 🎯 General purpose, reliable | $$$ |
-| `google/gemini-pro` | Google | 💰 Cost-effective, fast | $$ |
-| `meta-llama/llama-3.1-70b-instruct` | Meta | 🔓 Open source, powerful | $ |
+| `moonshotai/kimi-k2:free` | Moonshot AI | 📝 Textanalyse, Nachdenken | Kostenlos |
+| `x-ai/grok-3-mini` | xAI | 🎯 Schnell, zuverlässig | Kostenlos |
 
-> 💡 **Tip**: Start with `google/gemini-pro` for cost-effective testing, then upgrade to `claude-3-5-sonnet` for production.
+> 💡 **Tipp**: Diese kostenlosen Modelle bieten exzellente Leistung für Rathaus-Umschau-Analysen. Beginnen Sie mit `moonshotai/kimi-k2:free` für umfassende Textanalyse.
 
-📋 See the complete list at [OpenRouter Models](https://openrouter.ai/models)
+📋 Sehen Sie die vollständige Liste unter [OpenRouter Models](https://openrouter.ai/models)
 
-## 📊 Output Format
+## 📊 Ausgabeformat
 
-The tool outputs **structured JSON** with extracted information:
+Das Tool gibt **strukturiertes JSON** mit extrahierter Information aus:
 
 <details>
-<summary>📋 <strong>Example Output</strong></summary>
+<summary>📋 <strong>Beispielausgabe</strong></summary>
 
 ```json
 {
@@ -212,7 +212,7 @@ The tool outputs **structured JSON** with extracted information:
   "year": "2025",
   "id": "2025-07-17",
   "summary": "Rathaus-Umschau 134/2025: Sanierung Markt Wiener Platz, Neubau Thomas-Wimmer-Haus in Laim, neue Feuerwache 3 in Laim, Gedenkveranstaltung 9. Jahrestag OEZ-Attentat, Baustellen-Radverkehr, Vandalismus Zierbrunnen Harras, Ausstellungen Mode- und Designschulen.",
-  "social_media_post": "# KI-Kommentar zur Rathaus-Umschau 134 vom 17.07.2025\n\n## Baustellen-Radverkehr: Endlich Priorität?\nGrüne fordern Fuß- \u0026 Radverkehr vor MIV bei Baustellen. MobRef antwortet: „Ist schon lange so.“ Wirklich? Dann zeigt’s mal, statt nur davon zu reden!\n\n## Feuerwache 3 Laim: 10-Meter-Fahrrad-Freistreifen\nImmerhin: Für den neuen Standort wird ein 10 m breiter Streifen für „künftigen Fußgänger- und Fahrradsteg“ freigehalten. Bleibt nur zu hoffen, dass daraus mehr wird als ein Schmierzettel im Plan.\n\nQuelle: https://ru.muenchen.de/2025/134",
+  "social_media_post": "# KI-Kommentar zur Rathaus-Umschau 134 vom 17.07.2025\n\n## Baustellen-Radverkehr: Endlich Priorität?\nGrüne fordern Fuß- & Radverkehr vor MIV bei Baustellen. MobRef antwortet: „Ist schon lange so.“ Wirklich? Dann zeigt’s mal, statt nur davon zu reden!\n\n## Feuerwache 3 Laim: 10-Meter-Fahrrad-Freistreifen\nImmerhin: Für den neuen Standort wird ein 10 m breiter Streifen für „künftigen Fußgänger- und Fahrradsteg“ freigehalten. Bleibt nur zu hoffen, dass daraus mehr wird als ein Schmierzettel im Plan.\n\nQuelle: https://ru.muenchen.de/2025/134",
   "announcements": [
     {
       "title": "Markt am Wiener Platz wird saniert",
@@ -323,109 +323,109 @@ The tool outputs **structured JSON** with extracted information:
 
 </details>
 
-### 📈 Data Structure
+### 📈 Datenstruktur
 
-- **📝 Summary**: AI-generated overview of the document
-- **📢 Announcements**: Municipal decisions, policy changes, public notices
-- **🎉 Events**: Upcoming events, meetings, public gatherings  
-- **📊 Metadata**: Processing information and source details
+- **📝 Zusammenfassung**: KI-generierter Überblick über das Dokument
+- **📢 Ankündigungen**: Städtische Entscheidungen, Politikänderungen, öffentliche Bekanntmachungen
+- **🎉 Veranstaltungen**: Bevorstehende Veranstaltungen, Treffen, öffentliche Versammlungen  
+- **📊 Metadaten**: Verarbeitungsinformationen und Quelldetails
 
-## 👨‍💻 Development
+## 👨‍💻 Entwicklung
 
 <details>
-<summary>🧪 <strong>Running Tests</strong></summary>
+<summary>🧪 <strong>Tests ausführen</strong></summary>
 
 ```bash
-# Run all tests
+# Alle Tests ausführen
 pytest
 
-# Run with coverage
+# Mit Abdeckung ausführen
 pytest --cov=rubot --cov-report=html
 
-# Run specific test file
+# Spezifische Testdatei ausführen
 pytest tests/test_simple.py -v
 ```
 
 </details>
 
 <details>
-<summary>🔍 <strong>Code Quality</strong></summary>
+<summary>🔍 <strong>Code-Qualität</strong></summary>
 
 ```bash
 # 🧹 Linting
 flake8 rubot/
 
-# 🔍 Type checking  
+# 🔍 Typ-Überprüfung  
 mypy rubot/
 
-# ✨ Formatting
+# ✨ Formatierung
 black rubot/
 ```
 
 </details>
 
 <details>
-<summary>📁 <strong>Project Structure</strong></summary>
+<summary>📁 <strong>Projektstruktur</strong></summary>
 
 ```
 rubot/
 ├── 🤖 rubot/
 │   ├── __init__.py
 │   ├── __main__.py
-│   ├── cli.py          # 🖥️ CLI interface
-│   ├── config.py       # ⚙️ Configuration management
-│   ├── downloader.py   # 📥 PDF downloading
-│   ├── marker.py       # 🔄 PDF to Markdown conversion
-│   ├── llm.py          # 🧠 OpenRouter API integration
-│   ├── cache.py        # 💾 Caching functionality
-│   ├── retry.py        # 🔄 Retry mechanisms
-│   ├── models.py       # 📊 Data models
-│   └── utils.py        # 🛠️ Utility functions
-├── 🧪 tests/           # Test suite
-├── 📚 examples/        # Usage examples
-├── 💬 prompts/         # System prompt templates
-└── 📖 docs/            # Documentation
+│   ├── cli.py          # 🖥️ CLI-Schnittstelle
+│   ├── config.py       # ⚙️ Konfigurationsverwaltung
+│   ├── downloader.py   # 📥 PDF-Download
+│   ├── marker.py       # 🔄 PDF zu Markdown Konvertierung
+│   ├── llm.py          # 🧠 OpenRouter API-Integration
+│   ├── cache.py        # 💾 Cache-Funktionalität
+│   ├── retry.py        # 🔄 Wiederholungsmechanismen
+│   ├── models.py       # 📊 Datenmodelle
+│   └── utils.py        # 🛠️ Hilfsfunktionen
+├── 🧪 tests/           # Test-Suite
+├── 📚 examples/        # Verwendungsbeispiele
+├── 💬 prompts/         # System-Prompt-Vorlagen
+└── 📖 docs/            # Dokumentation
 ```
 
 </details>
 
 ---
 
-## 🤝 Contributing
+## 🤝 Mitwirken
 
-We welcome contributions! Here's how to get started:
+Wir heißen Beiträge willkommen! So können Sie loslegen:
 
-1. 🍴 **Fork** the repository
-2. 🌿 **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. ✨ **Make** your changes
-4. 🧪 **Add** tests for new functionality
-5. ✅ **Ensure** all tests pass
-6. 📝 **Commit** your changes (`git commit -m 'Add amazing feature'`)
-7. 🚀 **Push** to the branch (`git push origin feature/amazing-feature`)
-8. 🎯 **Submit** a pull request
+1. 🍴 **Forken** Sie das Repository
+2. 🌿 **Erstellen** Sie einen Feature-Branch (`git checkout -b feature/amazing-feature`)
+3. ✨ **Machen** Sie Ihre Änderungen
+4. 🧪 **Hinzufügen** Sie Tests für neue Funktionalitäten
+5. ✅ **Stellen** Sie sicher, dass alle Tests bestehen
+6. 📝 **Committen** Sie Ihre Änderungen (`git commit -m 'Add amazing feature'`)
+7. 🚀 **Pushen** Sie zum Branch (`git push origin feature/amazing-feature`)
+8. 🎯 **Reichen** Sie einen Pull-Request ein
 
-### 💡 Ideas for Contributions
+### 💡 Ideen für Beiträge
 
-- 🌍 **Internationalization**: Support for other languages
-- 📊 **Export formats**: CSV, Excel, XML output options
-- 🔌 **Integrations**: Slack, Discord, email notifications
-- 🎨 **UI**: Web interface or desktop app
-- 📈 **Analytics**: Trend analysis and reporting
+- 🌍 **Internationalisierung**: Unterstützung für andere Sprachen
+- 📊 **Exportformate**: CSV, Excel, XML Ausgabeoptionen
+- 🔌 **Integrationen**: Slack, Discord, E-Mail-Benachrichtigungen
+- 🎨 **UI**: Web-Schnittstelle oder Desktop-App
+- 📈 **Analytics**: Trendanalyse und Berichterstattung
 
 ---
 
-## 📄 License
+## 📄 Lizenz
 
-This project is licensed under the **GNU General Public License v3.0** - see the [LICENSE](LICENSE) file for details.
+Dieses Projekt ist unter der **GNU General Public License v3.0** lizenziert - siehe die [LICENSE](LICENSE)-Datei für Details.
 
-### ⚠️ Important Licensing Notice
+### ⚠️ Wichtiger Lizenz-Hinweis
 
-**Commercial Usage Restrictions**: This project uses `marker-pdf` for PDF to Markdown conversion. Parts of marker-pdf are licensed under **CC-BY-NC-SA-4.0**, which **restricts commercial usage**. 
+**Kommerzielle Nutzungsbeschränkungen**: Dieses Projekt verwendet `marker-pdf` für die PDF-zu-Markdown-Konvertierung. Teile von marker-pdf sind unter **CC-BY-NC-SA-4.0** lizenziert, was **kommerzielle Nutzung einschränkt**. 
 
-🔗 **For commercial use**, please review the licensing details and commercial options at:  
-**[marker-pdf Commercial Usage Guide](https://github.com/datalab-to/marker/blob/master/README.md#commercial-usage)**
+🔗 **Für kommerzielle Nutzung**, bitte überprüfen Sie die Lizenzdetails und kommerziellen Optionen unter:  
+**[marker-pdf Kommerzielle Nutzungsanleitung](https://github.com/datalab-to/marker/blob/master/README.md#commercial-usage)**
 
-If you plan to use rubot in a commercial environment, ensure you comply with marker-pdf's licensing requirements or consider alternative PDF processing solutions.
+Wenn Sie planen, rubot in einer kommerziellen Umgebung zu verwenden, stellen Sie sicher, dass Sie die Lizenzanforderungen von marker-pdf einhalten oder alternative PDF-Verarbeitungslösungen in Betracht ziehen.
 
 ## 🆘 Support & Community
 
@@ -435,7 +435,7 @@ If you plan to use rubot in a commercial environment, ensure you comply with mar
 [![GitHub Discussions](https://img.shields.io/github/discussions/rmoriz/rubot)](https://github.com/rmoriz/rubot/discussions)
 [![GitHub Stars](https://img.shields.io/github/stars/rmoriz/rubot?style=social)](https://github.com/rmoriz/rubot/stargazers)
 
-**[🐛 Report Bug](https://github.com/rmoriz/rubot/issues/new?template=bug_report.md)** • **[💡 Request Feature](https://github.com/rmoriz/rubot/issues/new?template=feature_request.md)** • **[💬 Discussions](https://github.com/rmoriz/rubot/discussions)**
+**[🐛 Bug melden](https://github.com/rmoriz/rubot/issues/new?template=bug_report.md)** • **[💡 Feature anfordern](https://github.com/rmoriz/rubot/issues/new?template=feature_request.md)** • **[💬 Diskussionen](https://github.com/rmoriz/rubot/discussions)**
 
 </div>
 
@@ -443,8 +443,8 @@ If you plan to use rubot in a commercial environment, ensure you comply with mar
 
 <div align="center">
 
-**Made with ❤️ for the Munich community**
+**Gemacht mit ❤️ für die Münchner Community**
 
-*If you find rubot useful, please consider giving it a ⭐ on GitHub!*
+*Wenn Sie rubot nützlich finden, erwägen Sie bitte, ihm einen ⭐ auf GitHub zu geben!*
 
 </div>
