@@ -1,108 +1,154 @@
-# rubot
+<div align="center">
 
-A CLI tool for downloading and processing Rathaus-Umschau PDFs with AI analysis.
+# 🤖 rubot
 
-## Overview
+**AI-Powered Munich Rathaus-Umschau PDF Processor**
 
-`rubot` automates the process of:
-1. Downloading Rathaus-Umschau PDFs from Munich's official website
-2. Converting PDFs to Markdown using `marker-pdf`
-3. Processing content with LLM via OpenRouter API
-4. Outputting structured JSON results
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Docker](https://img.shields.io/badge/docker-available-blue.svg)](https://github.com/rmoriz/rubot/pkgs/container/rubot)
+[![Tests](https://github.com/rmoriz/rubot/workflows/Test%20rubot/badge.svg)](https://github.com/rmoriz/rubot/actions)
 
-## Installation
+*Automate the extraction and analysis of Munich's official municipal announcements*
 
-### Prerequisites
+[🚀 Quick Start](#-quick-start) • [📖 Documentation](#-configuration) • [🐳 Docker](#-docker-usage) • [🤝 Contributing](#-contributing)
 
-- Python 3.13+
-- OpenRouter API key
+</div>
 
-### Install from Source
+---
 
-```bash
-git clone https://github.com/rmoriz/rubot.git
-cd rubot
-python -m venv rubot-env
-source rubot-env/bin/activate  # On Windows: rubot-env\Scripts\activate
-pip install -r requirements.txt
-pip install git+https://github.com/datalab-to/marker.git
+## ✨ What is rubot?
+
+`rubot` is a powerful CLI tool that transforms Munich's Rathaus-Umschau PDFs into structured, AI-analyzed data. Perfect for journalists, researchers, and citizens who want to stay informed about municipal decisions and events.
+
+### 🔄 How it works
+
+```mermaid
+graph LR
+    A[📄 PDF Download] --> B[📝 Markdown Conversion]
+    B --> C[🤖 AI Analysis]
+    C --> D[📊 JSON Output]
 ```
 
-### Using Installation Script
+1. **📥 Downloads** Rathaus-Umschau PDFs from Munich's official website
+2. **🔄 Converts** PDFs to clean Markdown using `marker-pdf`
+3. **🧠 Analyzes** content with your choice of AI model via OpenRouter
+4. **📤 Outputs** structured JSON with extracted announcements and events
+
+## 🚀 Quick Start
+
+### 📋 Prerequisites
+
+- 🐍 **Python 3.13+**
+- 🔑 **OpenRouter API key** ([Get yours here](https://openrouter.ai/))
+
+### ⚡ One-Line Installation
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/rmoriz/rubot/main/scripts/install.sh | bash
 ```
 
-## Configuration
+### 🛠️ Manual Installation
 
-Create a `.env` file or set environment variables:
+<details>
+<summary>Click to expand manual installation steps</summary>
 
 ```bash
-# Required
+# Clone the repository
+git clone https://github.com/rmoriz/rubot.git
+cd rubot
+
+# Create virtual environment
+python -m venv rubot-env
+source rubot-env/bin/activate  # On Windows: rubot-env\Scripts\activate
+
+# Install dependencies
+pip install -r requirements.txt
+pip install git+https://github.com/datalab-to/marker.git
+```
+
+</details>
+
+## ⚙️ Configuration
+
+Create a `.env` file with your settings:
+
+<details>
+<summary>📝 <strong>Required Configuration</strong></summary>
+
+```bash
+# 🔑 API Configuration (Required)
 OPENROUTER_API_KEY=your_openrouter_api_key_here
 DEFAULT_MODEL=your_preferred_model_here
 
-# Optional - System Prompt (choose one)
+# 💬 System Prompt (Required - choose one)
 DEFAULT_SYSTEM_PROMPT="Analyze the following Rathaus-Umschau content..."
 # OR use a prompt file:
 # DEFAULT_PROMPT_FILE=prompts/default.txt
+```
 
-# Optional - Network Settings
+</details>
+
+<details>
+<summary>🔧 <strong>Optional Configuration</strong></summary>
+
+```bash
+# 🌐 Network Settings
 REQUEST_TIMEOUT=120
 OPENROUTER_TIMEOUT=120
 MARKER_TIMEOUT=600
 MAX_RETRIES=3
 RETRY_DELAY=1.0
 
-# Optional - Cache Settings
+# 💾 Cache Settings
 CACHE_ENABLED=true
 CACHE_DIR=
 CACHE_MAX_AGE_HOURS=24
 
-# Optional - Processing Settings
+# 📄 Processing Settings
 MAX_PDF_PAGES=100
 
-# Optional - Output Settings
+# 📊 Output Settings
 OUTPUT_FORMAT=json
 JSON_INDENT=2
 ```
 
-## Usage
+</details>
 
-### Basic Usage
+## 🎯 Usage
+
+### 🏃‍♂️ Basic Usage
 
 ```bash
-# Process today's Rathaus-Umschau
+# 📅 Process today's Rathaus-Umschau
 rubot
 
-# Process specific date
+# 🗓️ Process specific date
 rubot --date 2024-01-15
 
-# Save to file
+# 💾 Save to file
 rubot --date 2024-01-15 --output result.json
 
-# Use custom prompt and model
+# 🎨 Use custom prompt and model
 rubot --date 2024-01-15 --prompt custom_prompt.txt --model gpt-4
 ```
 
-### CLI Options
+### 🛠️ CLI Options
 
-```
-Options:
-  --date TEXT        Date in YYYY-MM-DD format (default: today)
-  --output TEXT      Output file path (default: stdout)
-  --prompt TEXT      Path to system prompt file
-  --model TEXT       OpenRouter model ID
-  --temperature FLOAT LLM temperature (default: 0.1)
-  --max-tokens INT   Maximum tokens for response (default: 4000)
-  --verbose          Enable debug output
-  --help             Show this message and exit
-```
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--date` | 📅 Date in YYYY-MM-DD format | today |
+| `--output` | 📁 Output file path | stdout |
+| `--prompt` | 📝 Path to system prompt file | - |
+| `--model` | 🤖 OpenRouter model ID | from config |
+| `--temperature` | 🌡️ LLM temperature | 0.1 |
+| `--max-tokens` | 🔢 Maximum tokens for response | 4000 |
+| `--verbose` | 🔍 Enable debug output | false |
+| `--help` | ❓ Show help message | - |
 
-## Docker Usage
+## 🐳 Docker Usage
 
-### Using Pre-built Image
+### 🚢 Using Pre-built Image
 
 ```bash
 docker run --rm \
@@ -113,7 +159,10 @@ docker run --rm \
   --date 2024-01-15 --output /app/output/result.json
 ```
 
-### Docker Compose
+### 🐙 Docker Compose
+
+<details>
+<summary>Click to see docker-compose.yml</summary>
 
 ```yaml
 version: '3.8'
@@ -131,20 +180,31 @@ services:
     command: ["--date", "2024-01-15", "--output", "/app/output/result.json", "--verbose"]
 ```
 
-## Model Selection
+</details>
 
-rubot works with any OpenRouter-compatible model. Popular choices include:
+## 🧠 Model Selection
 
-- `anthropic/claude-3-5-sonnet`
-- `openai/gpt-4o`
-- `google/gemini-pro`
-- `meta-llama/llama-3.1-70b-instruct`
+rubot works with **any OpenRouter-compatible model**. Choose based on your needs:
 
-See [OpenRouter Models](https://openrouter.ai/models) for the complete list.
+### 🏆 Popular Models
 
-## Output Format
+| Model | Provider | Best For | Cost |
+|-------|----------|----------|------|
+| `anthropic/claude-3-5-sonnet` | Anthropic | 📝 Text analysis, reasoning | $$$ |
+| `openai/gpt-4o` | OpenAI | 🎯 General purpose, reliable | $$$ |
+| `google/gemini-pro` | Google | 💰 Cost-effective, fast | $$ |
+| `meta-llama/llama-3.1-70b-instruct` | Meta | 🔓 Open source, powerful | $ |
 
-The tool outputs structured JSON with extracted information:
+> 💡 **Tip**: Start with `google/gemini-pro` for cost-effective testing, then upgrade to `claude-3-5-sonnet` for production.
+
+📋 See the complete list at [OpenRouter Models](https://openrouter.ai/models)
+
+## 📊 Output Format
+
+The tool outputs **structured JSON** with extracted information:
+
+<details>
+<summary>📋 <strong>Example Output</strong></summary>
 
 ```json
 {
@@ -152,7 +212,7 @@ The tool outputs structured JSON with extracted information:
   "announcements": [
     {
       "title": "Announcement Title",
-      "description": "Detailed description",
+      "description": "Detailed description", 
       "category": "municipal_decision",
       "date": "2024-01-15",
       "location": "Munich City Hall"
@@ -161,7 +221,7 @@ The tool outputs structured JSON with extracted information:
   "events": [
     {
       "title": "Event Title",
-      "date": "2024-01-20",
+      "date": "2024-01-20", 
       "time": "14:00",
       "location": "Event Location",
       "description": "Event description"
@@ -175,64 +235,121 @@ The tool outputs structured JSON with extracted information:
 }
 ```
 
-## Development
+</details>
 
-### Running Tests
+### 📈 Data Structure
+
+- **📝 Summary**: AI-generated overview of the document
+- **📢 Announcements**: Municipal decisions, policy changes, public notices
+- **🎉 Events**: Upcoming events, meetings, public gatherings  
+- **📊 Metadata**: Processing information and source details
+
+## 👨‍💻 Development
+
+<details>
+<summary>🧪 <strong>Running Tests</strong></summary>
 
 ```bash
+# Run all tests
 pytest
+
+# Run with coverage
+pytest --cov=rubot --cov-report=html
+
+# Run specific test file
+pytest tests/test_simple.py -v
 ```
 
-### Code Quality
+</details>
+
+<details>
+<summary>🔍 <strong>Code Quality</strong></summary>
 
 ```bash
-# Linting
+# 🧹 Linting
 flake8 rubot/
 
-# Type checking
+# 🔍 Type checking  
 mypy rubot/
 
-# Formatting
+# ✨ Formatting
 black rubot/
 ```
 
-### Project Structure
+</details>
+
+<details>
+<summary>📁 <strong>Project Structure</strong></summary>
 
 ```
 rubot/
-├── rubot/
+├── 🤖 rubot/
 │   ├── __init__.py
 │   ├── __main__.py
-│   ├── cli.py          # CLI interface
-│   ├── config.py       # Configuration management
-│   ├── downloader.py   # PDF downloading
-│   ├── marker.py       # PDF to Markdown conversion
-│   ├── llm.py          # OpenRouter API integration
-│   ├── cache.py        # Caching functionality
-│   ├── retry.py        # Retry mechanisms
-│   ├── models.py       # Data models
-│   └── utils.py        # Utility functions
-├── tests/              # Test suite
-├── examples/           # Usage examples
-├── prompts/            # System prompt templates
-└── docs/               # Documentation
+│   ├── cli.py          # 🖥️ CLI interface
+│   ├── config.py       # ⚙️ Configuration management
+│   ├── downloader.py   # 📥 PDF downloading
+│   ├── marker.py       # 🔄 PDF to Markdown conversion
+│   ├── llm.py          # 🧠 OpenRouter API integration
+│   ├── cache.py        # 💾 Caching functionality
+│   ├── retry.py        # 🔄 Retry mechanisms
+│   ├── models.py       # 📊 Data models
+│   └── utils.py        # 🛠️ Utility functions
+├── 🧪 tests/           # Test suite
+├── 📚 examples/        # Usage examples
+├── 💬 prompts/         # System prompt templates
+└── 📖 docs/            # Documentation
 ```
 
-## Contributing
+</details>
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass
-6. Submit a pull request
+---
 
-## License
+## 🤝 Contributing
 
-MIT License - see [LICENSE](LICENSE) file for details.
+We welcome contributions! Here's how to get started:
 
-## Support
+1. 🍴 **Fork** the repository
+2. 🌿 **Create** a feature branch (`git checkout -b feature/amazing-feature`)
+3. ✨ **Make** your changes
+4. 🧪 **Add** tests for new functionality
+5. ✅ **Ensure** all tests pass
+6. 📝 **Commit** your changes (`git commit -m 'Add amazing feature'`)
+7. 🚀 **Push** to the branch (`git push origin feature/amazing-feature`)
+8. 🎯 **Submit** a pull request
 
-- GitHub Issues: [Report bugs or request features](https://github.com/rmoriz/rubot/issues)
-- Documentation: [docs/](docs/)
-- Examples: [examples/](examples/)
+### 💡 Ideas for Contributions
+
+- 🌍 **Internationalization**: Support for other languages
+- 📊 **Export formats**: CSV, Excel, XML output options
+- 🔌 **Integrations**: Slack, Discord, email notifications
+- 🎨 **UI**: Web interface or desktop app
+- 📈 **Analytics**: Trend analysis and reporting
+
+---
+
+## 📄 License
+
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support & Community
+
+<div align="center">
+
+[![GitHub Issues](https://img.shields.io/github/issues/rmoriz/rubot)](https://github.com/rmoriz/rubot/issues)
+[![GitHub Discussions](https://img.shields.io/github/discussions/rmoriz/rubot)](https://github.com/rmoriz/rubot/discussions)
+[![GitHub Stars](https://img.shields.io/github/stars/rmoriz/rubot?style=social)](https://github.com/rmoriz/rubot/stargazers)
+
+**[🐛 Report Bug](https://github.com/rmoriz/rubot/issues/new?template=bug_report.md)** • **[💡 Request Feature](https://github.com/rmoriz/rubot/issues/new?template=feature_request.md)** • **[💬 Discussions](https://github.com/rmoriz/rubot/discussions)**
+
+</div>
+
+---
+
+<div align="center">
+
+**Made with ❤️ for the Munich community**
+
+*If you find rubot useful, please consider giving it a ⭐ on GitHub!*
+
+</div>
