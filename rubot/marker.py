@@ -95,6 +95,8 @@ def _run_marker_conversion(pdf_path: str, timeout: int, cache_root: Optional[str
     """Run marker-pdf conversion and return content."""
     # Use cache_root for temporary directory
     cache_root = cache_root or os.getenv("CACHE_ROOT", "/tmp")
+    if cache_root is None:
+        cache_root = "/tmp"
     marker_temp_dir = Path(cache_root) / "marker"
     marker_temp_dir.mkdir(parents=True, exist_ok=True)
     
