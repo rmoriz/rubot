@@ -126,7 +126,8 @@ class TestModels:
     
     def test_from_llm_response_valid_json(self):
         """Test creating analysis from valid LLM JSON response"""
-        llm_response = json.dumps({
+        # Create OpenRouter format response
+        content_data = {
             "summary": "Test summary",
             "announcements": [
                 {
@@ -149,7 +150,18 @@ class TestModels:
                     "date": "2024-01-31"
                 }
             ]
-        })
+        }
+        
+        openrouter_response = {
+            "choices": [
+                {
+                    "message": {
+                        "content": json.dumps(content_data)
+                    }
+                }
+            ]
+        }
+        llm_response = json.dumps(openrouter_response)
         
         analysis = RathausUmschauAnalysis.from_llm_response(
             llm_response, "2024-01-15", "test-model"
