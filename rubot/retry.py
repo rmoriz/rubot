@@ -12,8 +12,8 @@ def retry_on_failure(
     max_retries: int = 3,
     delay: float = 1.0,
     backoff: float = 2.0,
-    exceptions: Tuple[Type[Exception], ...] = (requests.RequestException,),
-):
+    exceptions: Tuple[Type[Exception], ...] = (requests.RequestException,)
+) -> Callable[[Callable], Callable]:
     """
     Decorator to retry function calls on specific exceptions.
 
@@ -29,7 +29,7 @@ def retry_on_failure(
 
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
-        def wrapper(*args, **kwargs) -> Any:
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             current_delay = delay
             last_exception = None
 
@@ -72,4 +72,4 @@ def exponential_backoff(
         Delay in seconds
     """
     delay = base_delay * (2**attempt)
-    return min(delay, max_delay)
+    return float(min(delay, max_delay))

@@ -6,7 +6,7 @@ import os
 import hashlib
 import tempfile
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Tuple
 from datetime import datetime, timedelta
 import json
 
@@ -41,7 +41,7 @@ class MarkdownCache:
         cache_input = f"{pdf_path}_{stat.st_size}_{stat.st_mtime}"
         return hashlib.md5(cache_input.encode()).hexdigest()
     
-    def _get_cache_paths(self, cache_key: str) -> tuple[Path, Path]:
+    def _get_cache_paths(self, cache_key: str) -> Tuple[Path, Path]:
         """Get paths for markdown content and metadata files"""
         content_path = self.cache_dir / f"{cache_key}.md"
         meta_path = self.cache_dir / f"{cache_key}_meta.json"

@@ -7,6 +7,7 @@ from datetime import datetime
 import os
 import tempfile
 from pathlib import Path
+from typing import Optional
 
 from .downloader import download_pdf, generate_pdf_url
 from .marker import convert_pdf_to_markdown
@@ -28,7 +29,7 @@ from .cache import PDFCache
 @click.option("--temperature", default=0.1, type=float, help="LLM temperature (0.0-1.0, default: 0.1)")
 @click.option("--max-tokens", default=4000, type=int, help="Maximum tokens for LLM response (default: 4000)")
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
-def main(date, output, prompt, model, config, no_cache, cache_dir, temperature, max_tokens, verbose):
+def main(date: Optional[str], output: Optional[str], prompt: Optional[str], model: Optional[str], config: Optional[str], no_cache: bool, cache_dir: Optional[str], temperature: float, max_tokens: int, verbose: bool) -> None:
     """
     Download Rathaus-Umschau PDF, convert to markdown, and process with LLM.
     """

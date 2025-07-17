@@ -76,7 +76,7 @@ class RathausUmschauAnalysis:
     source_date: str
     model_used: str
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if not self.processing_date:
             self.processing_date = datetime.now().isoformat()
 
