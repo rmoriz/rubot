@@ -14,7 +14,7 @@ from .retry import retry_on_failure
 def validate_date_format(date: str) -> None:
     """Validate date format and ensure it's a valid date."""
     import datetime
-    
+
     try:
         datetime.datetime.strptime(date, "%Y-%m-%d")
     except ValueError:
@@ -67,13 +67,13 @@ def download_pdf(date: str, timeout: int = 30) -> str:
         response.raise_for_status()
 
         # Validate content type
-        content_type = response.headers.get('content-type', '')
-        if 'application/pdf' not in content_type.lower():
+        content_type = response.headers.get("content-type", "")
+        if "application/pdf" not in content_type.lower():
             logger = logging.getLogger(__name__)
             logger.warning(f"Unexpected content type: {content_type}")
 
         # Validate content size
-        content_length = response.headers.get('content-length')
+        content_length = response.headers.get("content-length")
         if content_length:
             try:
                 size_mb = int(content_length) / (1024 * 1024)
@@ -85,10 +85,11 @@ def download_pdf(date: str, timeout: int = 30) -> str:
 
         # Create temporary file in CACHE_ROOT
         import os
+
         cache_root = os.getenv("CACHE_ROOT", tempfile.gettempdir())
         cache_dir = os.path.join(cache_root, "downloads")
         os.makedirs(cache_dir, exist_ok=True)
-        
+
         # Write with streaming to handle large files
         with tempfile.NamedTemporaryFile(
             suffix=".pdf", delete=False, dir=cache_dir, mode="wb"
@@ -98,16 +99,18 @@ def download_pdf(date: str, timeout: int = 30) -> str:
             return str(tmp_file.name)
 
     except requests.exceptions.Timeout:
-        raise requests.RequestException(f"Download timed out after {timeout}s for {url}")
+        raise requests.RequestException(
+            f"Download timed out after {timeout}s for {url}"
+        )
     except requests.exceptions.ConnectionError:
         raise requests.RequestException(f"Connection failed to {url}")
     except requests.exceptions.HTTPError as e:
-        if hasattr(e, 'response') and e.response is not None:
+        if hasattr(e, "response") and e.response is not None:
             status_code = e.response.status_code
         else:
             # Fallback in case response is not available
             status_code = 500
-            
+
         if status_code == 404:
             raise FileNotFoundError(f"PDF not found for date {date}. URL: {url}")
         elif status_code == 403:

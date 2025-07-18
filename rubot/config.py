@@ -95,10 +95,15 @@ class RubotConfig:
             # Docling configuration
             docling_ocr_engine=os.getenv("DOCLING_OCR_ENGINE", "easyocr"),
             docling_do_ocr=os.getenv("DOCLING_DO_OCR", "true").lower() == "true",
-            docling_do_table_structure=os.getenv("DOCLING_DO_TABLE_STRUCTURE", "false").lower() == "true",
+            docling_do_table_structure=os.getenv(
+                "DOCLING_DO_TABLE_STRUCTURE", "false"
+            ).lower()
+            == "true",
             docling_model_cache_dir=os.getenv("DOCLING_MODEL_CACHE_DIR"),
             docling_image_mode=os.getenv("DOCLING_IMAGE_MODE", "placeholder"),
-            docling_image_placeholder=os.getenv("DOCLING_IMAGE_PLACEHOLDER", "<!-- image -->"),
+            docling_image_placeholder=os.getenv(
+                "DOCLING_IMAGE_PLACEHOLDER", "<!-- image -->"
+            ),
         )
 
     def to_dict(self) -> Dict[str, Any]:

@@ -15,7 +15,10 @@ class MarkdownCache:
     """Cache for PDF to Markdown conversion results"""
 
     def __init__(
-        self, cache_dir: Optional[str] = None, max_age_hours: int = 168, cache_root: Optional[str] = None
+        self,
+        cache_dir: Optional[str] = None,
+        max_age_hours: int = 168,
+        cache_root: Optional[str] = None,
     ):  # 1 week default
         """
         Initialize Markdown cache.
@@ -43,8 +46,9 @@ class MarkdownCache:
 
         # Use file content hash for stable cache key
         import hashlib
+
         hasher = hashlib.md5()
-        with open(pdf_path, 'rb') as f:
+        with open(pdf_path, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
                 hasher.update(chunk)
         return hasher.hexdigest()

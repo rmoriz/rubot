@@ -112,10 +112,14 @@ def process_with_openrouter(
             else f"System Prompt: {system_prompt}"
         )
         logger.debug(f"Headers: {dict(headers)}")
-        logger.debug(f"Full JSON Payload: {json.dumps(payload, indent=2, ensure_ascii=False)}")
+        logger.debug(
+            f"Full JSON Payload: {json.dumps(payload, indent=2, ensure_ascii=False)}"
+        )
 
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=timeout, verify=True)
+        response = requests.post(
+            url, headers=headers, json=payload, timeout=timeout, verify=True
+        )
 
         if verbose:
             logger = logging.getLogger(__name__)
@@ -133,16 +137,16 @@ def process_with_openrouter(
             logger = logging.getLogger(__name__)
             logger.debug("API Response received")
             logger.debug("\nFull JSON Response:")
-            logger.debug(
-                json.dumps(response_json, indent=2, ensure_ascii=False)
-            )
+            logger.debug(json.dumps(response_json, indent=2, ensure_ascii=False))
             logger.debug("-" * 50)
 
         # Return formatted JSON response
         return json.dumps(response_json, indent=2, ensure_ascii=False)
 
     except requests.exceptions.Timeout:
-        raise requests.RequestException(f"OpenRouter API request timed out after {timeout}s")
+        raise requests.RequestException(
+            f"OpenRouter API request timed out after {timeout}s"
+        )
     except requests.exceptions.ConnectionError:
         raise requests.RequestException("Failed to connect to OpenRouter API")
     except requests.exceptions.HTTPError as e:
@@ -151,9 +155,13 @@ def process_with_openrouter(
         elif e.response.status_code == 429:
             raise requests.RequestException("OpenRouter API rate limit exceeded")
         elif e.response.status_code >= 500:
-            raise requests.RequestException(f"OpenRouter API server error ({e.response.status_code})")
+            raise requests.RequestException(
+                f"OpenRouter API server error ({e.response.status_code})"
+            )
         else:
-            raise requests.RequestException(f"OpenRouter API HTTP error ({e.response.status_code})")
+            raise requests.RequestException(
+                f"OpenRouter API HTTP error ({e.response.status_code})"
+            )
     except requests.exceptions.RequestException as e:
         raise requests.RequestException(f"OpenRouter API request failed: {e}")
     except json.JSONDecodeError as e:
