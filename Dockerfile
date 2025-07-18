@@ -1,4 +1,5 @@
-FROM python:3.13-slim
+# Build stage for development dependencies
+FROM python:3.13-slim AS base
 
 # Install system dependencies for Docling
 RUN apt-get update && apt-get install -y \
@@ -41,6 +42,9 @@ RUN mkdir -p /app/models && \
 
 # Create cache directory
 RUN mkdir -p /app/cache
+
+# Production stage
+FROM base AS production
 
 # Set model cache environment variables
 ENV HF_HOME=/app/models
