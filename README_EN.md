@@ -5,7 +5,7 @@
 **AI-Powered Munich Rathaus-Umschau PDF Processor**
 
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
-[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPLv3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Docker](https://img.shields.io/badge/docker-available-blue.svg)](https://github.com/rmoriz/rubot/pkgs/container/rubot)
 [![Tests](https://github.com/rmoriz/rubot/workflows/Test%20rubot/badge.svg)](https://github.com/rmoriz/rubot/actions)
 
@@ -64,17 +64,14 @@ python -m venv rubot-env
 source rubot-env/bin/activate  # On Windows: rubot-env\Scripts\activate
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -e .
 ```
 
 </details>
 
 ## ⚙️ Configuration
 
-Create a `.env` file with your settings:
-
-<details>
-<summary>📝 <strong>Required Configuration</strong></summary>
+### 🔐 Required Environment Variables
 
 ```bash
 # 🔑 API Configuration (Required)
@@ -87,30 +84,31 @@ DEFAULT_SYSTEM_PROMPT="Analyze the following Rathaus-Umschau content..."
 # DEFAULT_PROMPT_FILE=prompts/default.txt
 ```
 
-</details>
+### 🔧 Optional Configuration
 
 <details>
-<summary>🔧 <strong>Optional Configuration</strong></summary>
+<summary>All available environment variables</summary>
 
 ```bash
 # 🌐 Network Settings
-REQUEST_TIMEOUT=120
-OPENROUTER_TIMEOUT=120
-MARKER_TIMEOUT=600
-MAX_RETRIES=3
-RETRY_DELAY=1.0
+REQUEST_TIMEOUT=120          # PDF download timeout in seconds
+OPENROUTER_TIMEOUT=120       # OpenRouter API timeout in seconds
 
 # 💾 Cache Settings
-CACHE_ENABLED=true
-CACHE_DIR=
-CACHE_MAX_AGE_HOURS=24
+CACHE_ENABLED=true           # Enable/disable caching
+CACHE_DIR=/tmp/rubot_cache   # Custom cache directory
+CACHE_MAX_AGE_HOURS=24       # Cache age in hours
+
+# 🧹 Cache Cleanup Settings
+CACHE_CLEANUP_DAYS=14        # Delete cache files after N days (0 = disable)
+SKIP_CLEANUP=1               # Skip automatic cache cleanup
 
 # 📄 Processing Settings
-MAX_PDF_PAGES=100
+DEFAULT_TEMPERATURE=0.8      # LLM temperature (0.0-1.0)
+DEFAULT_MAX_TOKENS=4000      # Maximum tokens for LLM response
 
-# 📊 Output Settings
-OUTPUT_FORMAT=json
-JSON_INDENT=2
+# 📊 Logging
+LOG_LEVEL=INFO               # DEBUG, INFO, WARNING, ERROR
 ```
 
 </details>
@@ -131,20 +129,32 @@ rubot --date 2025-07-17 --output result.json
 
 # 🎨 Use custom prompt and model
 rubot --date 2025-07-17 --prompt custom_prompt.txt --model gpt-4
+
+# 🧹 Cache cleanup after 7 days
+rubot --date 2025-07-17 --cache-cleanup-days 7
+
+# 🚫 Skip cache cleanup
+rubot --date 2025-07-17 --skip-cleanup
 ```
 
 ### 🛠️ CLI Options
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--date` | 📅 Date in YYYY-MM-DD format | today |
-| `--output` | 📁 Output file path | stdout |
-| `--prompt` | 📝 Path to system prompt file | - |
-| `--model` | 🤖 OpenRouter model ID | from config |
-| `--temperature` | 🌡️ LLM temperature | 0.1 |
-| `--max-tokens` | 🔢 Maximum tokens for response | 4000 |
-| `--verbose` | 🔍 Enable debug output | false |
-| `--help` | ❓ Show help message | - |
+| Option | Description | Default | Environment Variable |
+|--------|-------------|----------|---------------------|
+| `--date` | 📅 Date in YYYY-MM-DD format | today | - |
+| `--output` | 📁 Output file path | stdout | - |
+| `--prompt` | 📝 Path to system prompt file | - | DEFAULT_PROMPT_FILE |
+| `--model` | 🤖 OpenRouter model ID | - | DEFAULT_MODEL |
+| `--temperature` | 🌡️ LLM temperature | 0.8 | DEFAULT_TEMPERATURE |
+| `--max-tokens` | 🔢 Maximum tokens for response | 4000 | DEFAULT_MAX_TOKENS |
+| `--config` | ⚙️ Path to config file | .env | - |
+| `--no-cache` | 🚫 Disable caching | false | CACHE_ENABLED=false |
+| `--cache-dir` | 📂 Custom cache directory | System temp | CACHE_DIR |
+| `--cache-cleanup-days` | 🧹 Delete cache files after N days | 14 | CACHE_CLEANUP_DAYS |
+| `--skip-cleanup` | 🚫 Skip cache cleanup | false | SKIP_CLEANUP=1 |
+| `--verbose` | 🔍 Enable debug output | false | LOG_LEVEL=DEBUG |
+| `-h/--help` | ❓ Show help message | - | - |
+| `--version` | 🔢 Show version number | - | - |
 
 ## 🐳 Docker Usage
 
@@ -154,6 +164,7 @@ rubot --date 2025-07-17 --prompt custom_prompt.txt --model gpt-4
 docker run --rm \
   -e OPENROUTER_API_KEY=your_key \
   -e DEFAULT_MODEL=your_model \
+  -e CACHE_CLEANUP_DAYS=7 \
   -v $(pwd)/output:/app/output \
   ghcr.io/rmoriz/rubot:latest \
   --date 2024-01-15 --output /app/output/result.json
@@ -174,6 +185,7 @@ services:
       - DEFAULT_MODEL=${DEFAULT_MODEL}
       - CACHE_ENABLED=true
       - CACHE_MAX_AGE_HOURS=24
+      - CACHE_CLEANUP_DAYS=14
     volumes:
       - ./cache:/app/cache
       - ./output:/app/output
@@ -186,14 +198,14 @@ services:
 
 rubot works with **any OpenRouter-compatible model**. Choose based on your needs:
 
-### 🏆 Recommended Free Models
+### 🏆 Recommended Models
 
 | Model | Provider | Best For | Cost |
 |-------|----------|----------|------|
 | `moonshotai/kimi-k2:free` | Moonshot AI | 📝 Text analysis, reasoning | Free |
-| `x-ai/grok-3-mini` | xAI | 🎯 Fast, reliable | Free |
+| `x-ai/grok-3-mini` | xAI | 🎯 Fast, reliable | Cheap |
 
-> 💡 **Tip**: These free models provide excellent performance for Rathaus-Umschau analysis. Start with `moonshotai/kimi-k2:free` for comprehensive text analysis.
+> 💡 **Tip**: Start with the free `moonshotai/kimi-k2:free` for text analysis.
 
 📋 See the complete list at [OpenRouter Models](https://openrouter.ai/models)
 
@@ -209,36 +221,15 @@ The tool outputs **structured JSON** with extracted information:
   "issue": "134",
   "year": "2025",
   "id": "2025-07-17",
-  "summary": "Rathaus-Umschau 134/2025: Sanierung Markt Wiener Platz, Neubau Thomas-Wimmer-Haus in Laim, neue Feuerwache 3 in Laim, Gedenkveranstaltung 9. Jahrestag OEZ-Attentat, Baustellen-Radverkehr, Vandalismus Zierbrunnen Harras, Ausstellungen Mode- und Designschulen.",
-  "social_media_post": "# KI-Kommentar zur Rathaus-Umschau 134 vom 17.07.2025\n\n## Baustellen-Radverkehr: Endlich Priorität?\nGrüne fordern Fuß- \u0026 Radverkehr vor MIV bei Baustellen. MobRef antwortet: „Ist schon lange so.“ Wirklich? Dann zeigt’s mal, statt nur davon zu reden!\n\n## Feuerwache 3 Laim: 10-Meter-Fahrrad-Freistreifen\nImmerhin: Für den neuen Standort wird ein 10 m breiter Streifen für „künftigen Fußgänger- und Fahrradsteg“ freigehalten. Bleibt nur zu hoffen, dass daraus mehr wird als ein Schmierzettel im Plan.\n\nQuelle: https://ru.muenchen.de/2025/134",
+  "summary": "Rathaus-Umschau 134/2025: Sanierung Markt Wiener Platz, Neubau Thomas-Wimmer-Haus in Laim...",
+  "social_media_post": "# KI-Kommentar zur Rathaus-Umschau 134 vom 17.07.2025...",
   "announcements": [
     {
       "title": "Markt am Wiener Platz wird saniert",
-      "description": "Großreparatur statt Neubau: 3 Mio € Eigenfinanzierung, Interimsmarkt ab Frühjahr 2026, Fertigung Ende 2027",
+      "description": "Großreparatur statt Neubau: 3 Mio € Eigenfinanzierung...",
       "category": "construction",
       "date": "Ende 2027",
       "location": "Wiener Platz, Haidhausen"
-    },
-    {
-      "title": "Neubau Thomas-Wimmer-Haus in der „Alten Heimat“",
-      "description": "159 barrierefreie Wohnungen + Tagespflege, Baubeginn Herbst 2026, Fertigstellung Ende 2029",
-      "category": "construction",
-      "date": "Ende 2029",
-      "location": "Laim"
-    },
-    {
-      "title": "Neue Feuerwache 3 in Laim",
-      "description": "Ersatz für Schwanthalerhöhe, Generalübernehmer-Verfahren, Baustart nach DB-Räumung Ende 2026",
-      "category": "construction",
-      "date": "Ende 2026",
-      "location": "Landsberger Str. 332"
-    },
-    {
-      "title": "Zierbrunnen am Harras wieder beschädigt",
-      "description": "Vandalismus kostet 15 000 €, Wiederinbetriebnahme Ende Juli geplant",
-      "category": "public services",
-      "date": "Ende Juli 2025",
-      "location": "Harras"
     }
   ],
   "events": [
@@ -248,55 +239,6 @@ The tool outputs **structured JSON** with extracted information:
       "time": "14:00",
       "location": "Grund- und Mittelschule Guardinistraße 60",
       "description": "Erster naturnaher Pausenhof Münchens mit Bürgermeisterin Dietl"
-    },
-    {
-      "title": "Enthüllung „Ort der Demokratie“ Prannerstraße 8",
-      "date": "18. Juli 2025",
-      "time": "15:00",
-      "location": "Foyer MEAG, Prannerstraße 8",
-      "description": "Ehrung durch Landtagspräsidentin Aigner und OB Reiter"
-    },
-    {
-      "title": "Kunstprojekt „Menzinga“",
-      "date": "18. Juli 2025",
-      "time": "16:00",
-      "location": "Fußgänger-Unterführung S-Bahnhof Untermenzing",
-      "description": "800 m² Wandbild von Martin Blumöhr"
-    },
-    {
-      "title": "Gedenken Reichsbahnlager Neuaubing",
-      "date": "18. Juli 2025",
-      "time": "16:00",
-      "location": "Erinnerungsort Neuaubing, Ehrenbürgstraße 9",
-      "description": "Gedenkzeichen für 11 Zwangsarbeiter*innen"
-    },
-    {
-      "title": "Eröffnung Spielplatz Gollierplatz",
-      "date": "21. Juli 2025",
-      "time": "12:30",
-      "location": "Gollierplatz",
-      "description": "Neuer inklusiver Spielplatz mit Wasserspielbereich"
-    },
-    {
-      "title": "JEF-EU-Planspiel im Landtag",
-      "date": "21. Juli 2025",
-      "time": "14:00",
-      "location": "Bayerischer Landtag, Max-Planck-Straße 1",
-      "description": "100 Schüler*innen simulieren EU-Parlament"
-    },
-    {
-      "title": "Designpreis „Goldenes Pony“",
-      "date": "22. Juli 2025",
-      "time": "20:00",
-      "location": "Roßmarkt 15",
-      "description": "Verleihung mit Stadtschulrat Kraus"
-    },
-    {
-      "title": "Modenschau Meisterschule für Mode",
-      "date": "24. Juli 2025",
-      "time": "20:00",
-      "location": "Muffathalle, Zellstraße 4",
-      "description": "Premiere der Kollektionen „Breaking Patterns“"
     }
   ],
   "important_dates": [
@@ -304,16 +246,6 @@ The tool outputs **structured JSON** with extracted information:
       "description": "Akkreditierung für OEZ-Gedenkveranstaltung",
       "date": "19. Juli 2025",
       "details": "für Medienvertreter*innen"
-    },
-    {
-      "description": "Akkreditierung Modenschau",
-      "date": "23. Juli 2025, 16:00",
-      "details": "bei presse.rbs@muenchen.de"
-    },
-    {
-      "description": "Ausstellung Wettbewerbsergebnisse Ramersdorf",
-      "date": "7. August 2025",
-      "details": "täglich 8–20 Uhr, Blumenstraße 28b"
     }
   ]
 }
@@ -330,8 +262,7 @@ The tool outputs **structured JSON** with extracted information:
 
 ## 👨‍💻 Development
 
-<details>
-<summary>🧪 <strong>Running Tests</strong></summary>
+### 🧪 Running Tests
 
 ```bash
 # Run all tests
@@ -344,10 +275,7 @@ pytest --cov=rubot --cov-report=html
 pytest tests/test_simple.py -v
 ```
 
-</details>
-
-<details>
-<summary>🔍 <strong>Code Quality</strong></summary>
+### 🔍 Code Quality
 
 ```bash
 # 🧹 Linting
@@ -360,10 +288,7 @@ mypy rubot/
 black rubot/
 ```
 
-</details>
-
-<details>
-<summary>📁 <strong>Project Structure</strong></summary>
+### 📁 Project Structure
 
 ```
 rubot/
@@ -373,19 +298,17 @@ rubot/
 │   ├── cli.py          # 🖥️ CLI interface
 │   ├── config.py       # ⚙️ Configuration management
 │   ├── downloader.py   # 📥 PDF downloading
-│   ├── marker.py       # 🔄 PDF to Markdown conversion
 │   ├── llm.py          # 🧠 OpenRouter API integration
 │   ├── cache.py        # 💾 Caching functionality
 │   ├── retry.py        # 🔄 Retry mechanisms
 │   ├── models.py       # 📊 Data models
+│   ├── logger.py       # 📝 Logging configuration
 │   └── utils.py        # 🛠️ Utility functions
 ├── 🧪 tests/           # Test suite
 ├── 📚 examples/        # Usage examples
 ├── 💬 prompts/         # System prompt templates
 └── 📖 docs/            # Documentation
 ```
-
-</details>
 
 ---
 
@@ -414,11 +337,11 @@ We welcome contributions! Here's how to get started:
 
 ## 📄 License
 
-This project is licensed under the **GNU General Public License v3.0** - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **GNU Affero General Public License v3.0** - see the [LICENSE](LICENSE) file for details.
 
 ### ✅ Licensing
 
-This project uses `PyMuPDF` (AGPL-3.0) for PDF to Markdown conversion, which enables commercial usage. The AGPL license requires that all derivative works are also published under AGPL.
+This project uses `PyMuPDF` (AGPL-3.0) for PDF to Markdown conversion. The AGPL license requires that all derivative works are also published under AGPL.
 
 ## 🆘 Support & Community
 

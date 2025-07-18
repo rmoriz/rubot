@@ -54,9 +54,9 @@ Issues: {_issues}"""
 @click.option("--cache-dir", default=None, help="Custom cache directory")
 @click.option(
     "--temperature",
-    default=0.1,
+    default=0.8,
     type=float,
-    help="LLM temperature (0.0-1.0, default: 0.1)",
+    help="LLM temperature (0.0-1.0, default: 0.8)",
 )
 @click.option(
     "--max-tokens",
@@ -65,6 +65,17 @@ Issues: {_issues}"""
     help="Maximum tokens for LLM response (default: 4000)",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+@click.option(
+    "--cache-cleanup-days",
+    default=None,
+    type=int,
+    help="Delete cache files older than N days (default: 14, env: CACHE_CLEANUP_DAYS)",
+)
+@click.option(
+    "--skip-cleanup",
+    is_flag=True,
+    help="Skip automatic cache cleanup (env: SKIP_CLEANUP=1)",
+)
 def main(
     date: Optional[str],
     output: Optional[str],
@@ -76,6 +87,7 @@ def main(
     temperature: float,
     max_tokens: int,
     verbose: bool,
+cache_cleanup_days: Optional[int], skip_cleanup: bool,
 ) -> None:
     """Command implementation - see help text for details."""
     logger = setup_logger(level="DEBUG" if verbose else None)
@@ -110,6 +122,7 @@ def main(
 
         _handle_output(llm_response, output, logger, date, model)
         _cleanup_temp_files(cache, pdf_path, logger)
+        _cleanup_old_cache_files(cache_root, cache_cleanup_days, skip_cleanup, logger)
 
     except Exception as e:
         _handle_error(e, logger)
@@ -609,6 +622,58 @@ def _handle_error(e: Exception, logger: logging.Logger) -> None:
     logger.error(f"Error: {e}")
     logger.debug("Full traceback:", exc_info=True)
     raise click.Abort()
+
+
+def _cleanup_old_cache_files(
+    cache_root: str, 
+    cache_cleanup_days: Optional[int], 
+    skip_cleanup: bool, 
+    logger: logging.Logger
+) -> None:
+    """Clean up old cache files based on age."""
+    if skip_cleanup or os.getenv("SKIP_CLEANUP") == "1":
+        logger.debug("Cache cleanup skipped by user request")
+        return
+    
+    days = cache_cleanup_days or int(os.getenv("CACHE_CLEANUP_DAYS", "14"))
+    if days <= 0:
+        logger.debug("Cache cleanup disabled (days <= 0)")
+        return
+    
+    cutoff_time = time.time() - (days * 24 * 3600)
+    
+    # Clean up PDF cache
+    pdf_cache_dir = os.path.join(cache_root, "pdf_cache")
+    _cleanup_directory_by_age(pdf_cache_dir, cutoff_time, logger, "PDF")
+    
+    # Clean up markdown cache
+    markdown_cache_dir = os.path.join(cache_root, "markdown")
+    _cleanup_directory_by_age(markdown_cache_dir, cutoff_time, logger, "Markdown")
+    
+    # Clean up downloads cache
+    downloads_cache_dir = os.path.join(cache_root, "downloads")
+    _cleanup_directory_by_age(downloads_cache_dir, cutoff_time, logger, "Downloads")
+
+
+def _cleanup_directory_by_age(directory: str, cutoff_time: float, logger: logging.Logger, name: str) -> None:
+    """Clean up files in a directory older than cutoff time."""
+    if not os.path.exists(directory):
+        return
+    
+    removed_count = 0
+    for filename in os.listdir(directory):
+        filepath = os.path.join(directory, filename)
+        if os.path.isfile(filepath) and os.path.getmtime(filepath) < cutoff_time:
+            try:
+                os.remove(filepath)
+                removed_count += 1
+            except (OSError, IOError) as e:
+                logger.warning(f"Could not remove {name} cache file {filepath}: {e}")
+    
+    if removed_count > 0:
+        logger.info(f"Cleaned up {removed_count} old {name} cache files (older than {int((time.time() - cutoff_time) / (24 * 3600))} days)")
+    else:
+        logger.debug(f"No old {name} cache files to clean up")
 
 
 if __name__ == "__main__":

@@ -49,7 +49,7 @@ def main():
         markdown_content,
         config.default_prompt_file,
         config.default_model,
-        temperature=0.1,
+        temperature=0.8,
         max_tokens=4000,
         verbose=True
     )

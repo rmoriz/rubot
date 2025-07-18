@@ -7,7 +7,7 @@ name = "rubot"
 version = "0.1.1"
 description = "CLI tool for downloading and processing Rathaus-Umschau PDFs"
 readme = "README.md"
-license = {text = "GPL-3.0"}
+license = {text = "AGPL-3.0"}
 authors = [
     {name = "Roland Moriz", email = "rmoriz@users.noreply.github.com"}
 ]
@@ -24,6 +24,7 @@ dependencies = [
     "click>=8.1.0",
     "requests>=2.31.0",
     "python-dotenv>=1.0.0",
+    "PyMuPDF>=1.23.0",
 ]
 
 [project.optional-dependencies]
