@@ -238,6 +238,8 @@ fabric.properties
 tmp_*
 *.tmp
 *.temp
+.cache/*
+cache/*
 
 # Project specific
 result.json

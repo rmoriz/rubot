@@ -25,7 +25,7 @@ class RubotConfig:
     # Network settings
     request_timeout: int = 120
     openrouter_timeout: int = 120
-    marker_timeout: int = 600
+    pdf_timeout: int = 600
     max_retries: int = 3
     retry_delay: float = 1.0
 
@@ -39,6 +39,14 @@ class RubotConfig:
     # Output settings
     output_format: str = "json"
     json_indent: int = 2
+
+    # Docling configuration
+    docling_ocr_engine: str = "easyocr"
+    docling_do_ocr: bool = True
+    docling_do_table_structure: bool = False  # Disabled for faster processing
+    docling_model_cache_dir: Optional[str] = None
+    docling_image_mode: str = "placeholder"
+    docling_image_placeholder: str = "<!-- image -->"
 
     @classmethod
     def from_env(cls, env_file: Optional[str] = None) -> "RubotConfig":
@@ -76,7 +84,7 @@ class RubotConfig:
             cache_root=os.getenv("CACHE_ROOT"),
             request_timeout=int(os.getenv("REQUEST_TIMEOUT", "120")),
             openrouter_timeout=int(os.getenv("OPENROUTER_TIMEOUT", "120")),
-            marker_timeout=int(os.getenv("MARKER_TIMEOUT", "600")),
+            pdf_timeout=int(os.getenv("PDF_TIMEOUT", "600")),
             max_retries=int(os.getenv("MAX_RETRIES", "3")),
             retry_delay=float(os.getenv("RETRY_DELAY", "1.0")),
             cache_enabled=os.getenv("CACHE_ENABLED", "true").lower() == "true",
@@ -84,6 +92,13 @@ class RubotConfig:
             max_pdf_pages=int(os.getenv("MAX_PDF_PAGES", "100")),
             output_format=os.getenv("OUTPUT_FORMAT", "json"),
             json_indent=int(os.getenv("JSON_INDENT", "2")),
+            # Docling configuration
+            docling_ocr_engine=os.getenv("DOCLING_OCR_ENGINE", "easyocr"),
+            docling_do_ocr=os.getenv("DOCLING_DO_OCR", "true").lower() == "true",
+            docling_do_table_structure=os.getenv("DOCLING_DO_TABLE_STRUCTURE", "false").lower() == "true",
+            docling_model_cache_dir=os.getenv("DOCLING_MODEL_CACHE_DIR"),
+            docling_image_mode=os.getenv("DOCLING_IMAGE_MODE", "placeholder"),
+            docling_image_placeholder=os.getenv("DOCLING_IMAGE_PLACEHOLDER", "<!-- image -->"),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -96,7 +111,7 @@ class RubotConfig:
             "cache_root": self.cache_root,
             "request_timeout": self.request_timeout,
             "openrouter_timeout": self.openrouter_timeout,
-            "marker_timeout": self.marker_timeout,
+            "pdf_timeout": self.pdf_timeout,
             "max_retries": self.max_retries,
             "retry_delay": self.retry_delay,
             "cache_enabled": self.cache_enabled,
@@ -104,6 +119,12 @@ class RubotConfig:
             "max_pdf_pages": self.max_pdf_pages,
             "output_format": self.output_format,
             "json_indent": self.json_indent,
+            "docling_ocr_engine": self.docling_ocr_engine,
+            "docling_do_ocr": self.docling_do_ocr,
+            "docling_do_table_structure": self.docling_do_table_structure,
+            "docling_model_cache_dir": self.docling_model_cache_dir,
+            "docling_image_mode": self.docling_image_mode,
+            "docling_image_placeholder": self.docling_image_placeholder,
         }
 
 

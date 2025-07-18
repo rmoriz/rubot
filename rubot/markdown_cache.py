@@ -6,7 +6,7 @@ import os
 import hashlib
 import tempfile
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any
 from datetime import datetime, timedelta
 import json
 
@@ -160,7 +160,7 @@ class MarkdownCache:
 
         return removed
 
-    def get_cache_info(self) -> dict:
+    def get_cache_info(self) -> Dict[str, Any]:
         """Get information about cache contents"""
         content_files = list(self.cache_dir.glob("*.md"))
         meta_files = list(self.cache_dir.glob("*_meta.json"))

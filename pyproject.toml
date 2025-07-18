@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rubot"
-version = "0.1.1"
+version = "0.2.0"
 description = "CLI tool for downloading and processing Rathaus-Umschau PDFs"
 readme = "README.md"
-license = {text = "GPL-3.0"}
+license = {text = "AGPL-3.0"}
 authors = [
-    {name = "rmoriz", email = "rmoriz@users.noreply.github.com"}
+    {name = "Roland Moriz", email = "rmoriz@users.noreply.github.com"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -24,6 +24,7 @@ dependencies = [
     "click>=8.1.0",
     "requests>=2.31.0",
     "python-dotenv>=1.0.0",
+    "docling>=2.41.0",
 ]
 
 [project.optional-dependencies]
@@ -38,6 +39,10 @@ dev = [
     "mypy>=1.5.0",
     "types-requests>=2.31.0",
 ]
+# NEW: OCR engine options
+ocr-tesseract = ["docling[tesserocr]"]
+ocr-rapid = ["docling[rapidocr]"]
+vlm = ["docling[vlm]"]
 
 [project.scripts]
 rubot = "rubot.cli:main"

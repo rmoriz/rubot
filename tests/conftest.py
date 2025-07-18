@@ -62,7 +62,7 @@ def temp_config(temp_env):
         cache_max_age_hours=24,
         request_timeout=30,
         openrouter_timeout=30,
-        marker_timeout=60,
+        pdf_timeout=60,
         max_retries=1,
         retry_delay=0.1,
         max_pdf_pages=10,

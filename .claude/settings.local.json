@@ -22,7 +22,14 @@
       "Bash(grep:*)",
       "Bash(sed:*)",
       "Bash(docker run:*)",
-      "Bash(docker inspect:*)"
+      "Bash(docker inspect:*)",
+      "Bash(pytest:*)",
+      "Bash(touch:*)",
+      "Bash(find:*)",
+      "Bash(. venv/bin/activate)",
+      "Bash(mypy:*)",
+      "Bash(OPENROUTER_API_KEY=test venv/bin/python -m rubot -v --date 2025-04-04)",
+      "Bash(LOG_LEVEL=DEBUG venv/bin/python -c \"from rubot.cli import main; main([''--date'', ''2025-04-04'', ''-v''])\")"
     ],
     "deny": []
   }

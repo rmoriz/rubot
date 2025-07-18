@@ -6,18 +6,39 @@ import click
 from datetime import datetime
 import os
 import tempfile
-from typing import Optional
+import time
+from typing import Optional, Any
 
 from .downloader import download_pdf, generate_pdf_url
-from .marker import convert_pdf_to_markdown
 from .llm import process_with_openrouter
 from .utils import validate_date
 from .config import RubotConfig
 from .models import RathausUmschauAnalysis
 from .cache import PDFCache
+from .logger import setup_logger
+import logging
+import importlib.metadata
 
 
-@click.command()
+_metadata = importlib.metadata.metadata("rubot")
+_homepage = _metadata.get("Home-page", "https://github.com/rmoriz/rubot")
+_issues = "https://github.com/rmoriz/rubot/issues"
+
+# Try to extract issues URL from project URLs
+project_urls = _metadata.get_all("Project-url", [])
+for url_line in project_urls:
+    if "Issues" in url_line and "=" in url_line:
+        _issues = url_line.split("=", 1)[1].strip()
+        break
+
+@click.command(
+    context_settings=dict(help_option_names=['-h', '--help']),
+    help=f"""{_metadata["Summary"]}
+
+Website: {_homepage}
+Issues: {_issues}"""
+)
+@click.version_option(version=importlib.metadata.version("rubot"))
 @click.option("--date", default=None, help="Date in YYYY-MM-DD format (default: today)")
 @click.option(
     "--output", default=None, help="Output file path for JSON result (default: stdout)"
@@ -33,9 +54,9 @@ from .cache import PDFCache
 @click.option("--cache-dir", default=None, help="Custom cache directory")
 @click.option(
     "--temperature",
-    default=0.1,
+    default=0.8,
     type=float,
-    help="LLM temperature (0.0-1.0, default: 0.1)",
+    help="LLM temperature (0.0-1.0, default: 0.8)",
 )
 @click.option(
     "--max-tokens",
@@ -44,6 +65,17 @@ from .cache import PDFCache
     help="Maximum tokens for LLM response (default: 4000)",
 )
 @click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+@click.option(
+    "--cache-cleanup-days",
+    default=None,
+    type=int,
+    help="Delete cache files older than N days (default: 14, env: CACHE_CLEANUP_DAYS)",
+)
+@click.option(
+    "--skip-cleanup",
+    is_flag=True,
+    help="Skip automatic cache cleanup (env: SKIP_CLEANUP=1)",
+)
 def main(
     date: Optional[str],
     output: Optional[str],
@@ -55,55 +87,60 @@ def main(
     temperature: float,
     max_tokens: int,
     verbose: bool,
+cache_cleanup_days: Optional[int], skip_cleanup: bool,
 ) -> None:
-    """
-    Download Rathaus-Umschau PDF, convert to markdown, and process with LLM.
-    """
+    """Command implementation - see help text for details."""
+    logger = setup_logger(level="DEBUG" if verbose else None)
+    if verbose:
+        logger.debug("Verbose logging enabled")
+    
     try:
-        app_config = _load_and_validate_config(config, verbose)
+        app_config = _load_and_validate_config(config, logger)
+        cache_root = cache_dir or app_config.cache_dir or os.getenv("CACHE_ROOT", tempfile.gettempdir()) or "/tmp"
+        logger.info(f"Using cache root: {cache_root}")
         date = _prepare_date(date)
         prompt, model = _validate_prompt_and_model(prompt, model, app_config)
-        cache = _setup_cache(no_cache, cache_dir, app_config, verbose)
+        cache = _setup_cache(no_cache, cache_dir, app_config, logger)
 
-        _log_processing_info(date, model, temperature, max_tokens, verbose)
+        _log_processing_info(date, model, temperature, max_tokens, logger)
+        _log_cache_cleanup_info(cache_cleanup_days, skip_cleanup, logger)
 
-        pdf_path = _download_pdf_with_cache(date, cache, app_config, verbose)
+        pdf_path = _download_pdf_with_cache(date, cache, app_config, logger)
         markdown_content = _convert_to_markdown(
-            pdf_path, app_config, cache_dir, verbose
+            pdf_path, app_config, cache_dir, logger
         )
 
-        _log_prompt_source(prompt, verbose)
+        _log_prompt_source(prompt, logger)
         llm_response = _process_with_llm(
             markdown_content,
             prompt,
             model,
             temperature,
             max_tokens,
-            verbose,
+            logger,
             app_config,
         )
 
-        _handle_output(llm_response, output, verbose, date, model)
-        _cleanup_temp_files(cache, pdf_path)
+        _handle_output(llm_response, output, logger, date, model)
+        _cleanup_temp_files(cache, pdf_path, logger)
+        _cleanup_old_cache_files(cache_root, cache_cleanup_days, skip_cleanup, logger)
 
     except Exception as e:
-        _handle_error(e, verbose)
+        _handle_error(e, logger)
 
 
-def _load_and_validate_config(config: Optional[str], verbose: bool) -> RubotConfig:
+def _load_and_validate_config(config: Optional[str], logger: logging.Logger) -> RubotConfig:
     """Load and validate configuration."""
     try:
         app_config = RubotConfig.from_env(config)
     except ValueError as e:
-        click.echo(f"Configuration error: {e}", err=True)
+        logger.error(f"Configuration error: {e}")
         raise click.Abort()
 
-    if verbose:
-        click.echo("Configuration loaded:", err=True)
-        config_dict = app_config.to_dict()
-        for key, value in config_dict.items():
-            click.echo(f"  {key}: {value}", err=True)
-        click.echo(err=True)
+    logger.debug("Configuration loaded:")
+    config_dict = app_config.to_dict()
+    for key, value in config_dict.items():
+        logger.debug(f"  {key}: {value}")
 
     return app_config
 
@@ -129,6 +166,12 @@ def _validate_prompt_and_model(
                     "DEFAULT_SYSTEM_PROMPT must be configured"
                 )
 
+    # Early validation: Check if prompt file exists before proceeding
+    # This prevents wasting time downloading PDFs if the prompt file is missing
+    # Especially important for Docker environments with volume mount issues
+    if prompt and not os.path.isfile(prompt):
+        raise ValueError(f"Prompt file not found: {prompt}")
+
     if model is None:
         model = app_config.default_model
         if not model:
@@ -141,95 +184,146 @@ def _validate_prompt_and_model(
 
 
 def _setup_cache(
-    no_cache: bool, cache_dir: Optional[str], app_config: RubotConfig, verbose: bool
+    no_cache: bool, cache_dir: Optional[str], app_config: RubotConfig, logger: logging.Logger
 ) -> Optional[PDFCache]:
     """Setup PDF cache if enabled."""
     if no_cache or not app_config.cache_enabled:
+        logger.debug("Cache disabled")
         return None
 
-    cache_directory = cache_dir or app_config.cache_dir
-    cache_root = app_config.cache_root
-    
+    cache_root = cache_dir or app_config.cache_dir or os.getenv("CACHE_ROOT", tempfile.gettempdir()) or "/tmp"
     cache = PDFCache(
-        cache_directory, 
+        cache_root, 
         app_config.cache_max_age_hours, 
         cache_root=cache_root
     )
-    if verbose:
-        click.echo(f"Cache enabled: {cache.cache_dir}", err=True)
+    logger.info(f"PDF cache enabled: {cache.cache_dir}")
 
     return cache
 
 
 def _log_processing_info(
-    date: str, model: str, temperature: float, max_tokens: int, verbose: bool
+    date: str, model: str, temperature: float, max_tokens: int, logger: logging.Logger
 ) -> None:
     """Log processing information."""
-    click.echo(f"Processing Rathaus-Umschau for date: {date}", err=True)
-    if verbose:
-        click.echo(f"Model: {model}", err=True)
-        click.echo(f"Temperature: {temperature}", err=True)
-        click.echo(f"Max tokens: {max_tokens}", err=True)
+    logger.info(f"Processing Rathaus-Umschau for date: {date}")
+    logger.debug(f"Model: {model}")
+    logger.debug(f"Temperature: {temperature}")
+    logger.debug(f"Max tokens: {max_tokens}")
 
 
 def _download_pdf_with_cache(
-    date: str, cache: Optional[PDFCache], app_config: RubotConfig, verbose: bool
+    date: str, cache: Optional[PDFCache], app_config: RubotConfig, logger: logging.Logger
 ) -> str:
-    """Download PDF with caching support."""
-    click.echo("Checking PDF cache...", err=True)
+    """Download PDF with caching support, keeping original filename."""
     pdf_url = generate_pdf_url(date)
-
-    pdf_path = None
+    logger.info(f"PDF URL: {pdf_url}")
+    
+    # Generate filename from date
+    year, month, day = date.split("-")
+    filename = f"ru-{year}-{month}-{day}.pdf"
+    
+    pdf_path: str
     if cache:
-        pdf_path = cache.get(pdf_url)
-        if pdf_path:
-            click.echo(f"PDF Cache HIT: {pdf_path}", err=True)
+        # Check if PDF exists with original filename in cache
+        pdf_path = os.path.join(cache.cache_dir, filename)
+        if os.path.exists(pdf_path):
+            from datetime import datetime
+            creation_time = os.path.getctime(pdf_path)
+            creation_date = datetime.fromtimestamp(creation_time).strftime("%Y-%m-%d %H:%M:%S")
+            logger.info(f"PDF Cache HIT: {pdf_path} (created: {creation_date})")
+            return pdf_path
 
-    if not pdf_path:
-        click.echo("PDF Cache MISS: Downloading...", err=True)
-        pdf_path = download_pdf(date, app_config.request_timeout)
-        if cache:
-            cached_path = cache.put(pdf_url, pdf_path)
-            click.echo(f"PDF cached to: {cached_path}", err=True)
-        else:
-            click.echo(f"PDF downloaded to: {pdf_path}", err=True)
-
-    return pdf_path
+    logger.info("PDF Cache MISS: Downloading...")
+    downloaded_path: str = download_pdf(date, app_config.request_timeout)
+    
+    if cache:
+        # Move to cache with original filename
+        cache_path = os.path.join(cache.cache_dir, filename)
+        import shutil
+        shutil.move(downloaded_path, cache_path)
+        logger.info(f"PDF cached to: {cache_path}")
+        return cache_path
+    else:
+        return downloaded_path
 
 
 def _convert_to_markdown(
-    pdf_path: str, app_config: RubotConfig, cache_dir: Optional[str], verbose: bool
+    pdf_path: str, app_config: RubotConfig, cache_dir: Optional[str], logger: logging.Logger
 ) -> str:
-    """Convert PDF to markdown."""
-    click.echo("Checking Markdown cache...", err=True)
-    markdown_content = convert_pdf_to_markdown(
-        pdf_path,
-        use_cache=app_config.cache_enabled,
-        cache_dir=cache_dir,
-        cache_root=app_config.cache_root,
-        verbose=verbose,
-        timeout=app_config.marker_timeout,
+    """Convert PDF to markdown using Docling with caching."""
+    from .docling_converter import DoclingPDFConverter, DoclingConfig
+    import hashlib
+    import os
+    
+    # Create cache directory for markdown
+    cache_root = cache_dir or app_config.cache_dir or os.getenv("CACHE_ROOT", tempfile.gettempdir()) or "/tmp"
+    markdown_cache_dir = os.path.join(cache_root, "markdown")
+    os.makedirs(markdown_cache_dir, exist_ok=True)
+    
+    # Generate cache key from PDF file (streaming hash)
+    hasher = hashlib.sha256()
+    with open(pdf_path, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            hasher.update(chunk)
+    content_hash = hasher.hexdigest()
+    
+    cache_key = f"{content_hash}_docling.md"
+    cache_file = os.path.join(markdown_cache_dir, cache_key)
+    
+    # Check if markdown is cached
+    if os.path.exists(cache_file):
+        cache_age = time.time() - os.path.getmtime(cache_file)
+        cache_max_age = app_config.cache_max_age_hours * 3600
+        
+        if cache_age < cache_max_age:
+            cache_file_size = os.path.getsize(cache_file)
+            logger.info(f"Markdown Cache HIT: {cache_file} ({cache_file_size:,} bytes)")
+            with open(cache_file, "r", encoding="utf-8") as f:
+                content = f.read()
+                logger.info(f"Markdown loaded from cache: {len(content):,} characters")
+                return content
+        else:
+            logger.info(f"Markdown Cache EXPIRED: {cache_file} (age: {cache_age/3600:.1f}h)")
+    else:
+        logger.info("Markdown Cache MISS: Converting PDF with Docling...")
+    
+    # Configure Docling
+    logger.info(f"Configuring Docling with OCR engine: {app_config.docling_ocr_engine}")
+    docling_config = DoclingConfig(
+        ocr_engine=app_config.docling_ocr_engine,
+        do_ocr=app_config.docling_do_ocr,
+        do_table_structure=app_config.docling_do_table_structure,
+        image_mode=app_config.docling_image_mode,
+        image_placeholder=app_config.docling_image_placeholder,
     )
-
-    if verbose:
-        click.echo(f"Markdown length: {len(markdown_content)} characters", err=True)
-
+    
+    # Convert with Docling
+    converter = DoclingPDFConverter(docling_config)
+    markdown_content = converter.convert_to_markdown(pdf_path)
+    
+    # Cache the markdown
+    with open(cache_file, "w", encoding="utf-8") as f:
+        f.write(markdown_content)
+    
+    logger.info(f"Docling conversion complete: {len(markdown_content):,} characters")
+    logger.debug(f"Markdown cached to: {cache_file}")
+    
     return markdown_content
 
 
-def _log_prompt_source(prompt: Optional[str], verbose: bool) -> None:
+
+
+def _log_prompt_source(prompt: Optional[str], logger: logging.Logger) -> None:
     """Log prompt source information."""
     if prompt:
-        click.echo(f"Prompt source: File '{prompt}'", err=True)
+        logger.info(f"Prompt source: File '{prompt}'")
     else:
         env_prompt = os.getenv("DEFAULT_SYSTEM_PROMPT")
         if env_prompt:
-            click.echo(
-                "Prompt source: Environment variable 'DEFAULT_SYSTEM_PROMPT'",
-                err=True,
-            )
+            logger.info("Prompt source: Environment variable 'DEFAULT_SYSTEM_PROMPT'")
         else:
-            click.echo("Prompt source: Unknown", err=True)
+            logger.warning("Prompt source: Unknown")
 
 
 def _process_with_llm(
@@ -238,25 +332,25 @@ def _process_with_llm(
     model: str,
     temperature: float,
     max_tokens: int,
-    verbose: bool,
+    logger: logging.Logger,
     app_config: RubotConfig,
 ) -> str:
     """Process content with LLM."""
-    click.echo("Processing with LLM...", err=True)
+    logger.info(f"Processing with LLM ({model})...")
     result = process_with_openrouter(
         markdown_content,
         prompt,
         model,
         temperature,
         max_tokens,
-        verbose,
+        logger.level <= logging.DEBUG,  # Use debug flag from logger
         app_config.openrouter_timeout,
     )
     return str(result)
 
 
 def _handle_output(
-    llm_response: str, output: Optional[str], verbose: bool, date: str, model: str
+    llm_response: str, output: Optional[str], logger: logging.Logger, date: str, model: str
 ) -> None:
     """Handle LLM response output and parsing."""
     try:
@@ -279,27 +373,21 @@ def _handle_output(
                     openrouter_response, indent=2, ensure_ascii=False
                 )
                 _write_output(
-                    formatted_response, output, "Complete response with parsed JSON"
+                    formatted_response, output, "Complete response with parsed JSON", logger
                 )
 
             except json.JSONDecodeError:
-                click.echo(
-                    "Note: LLM content is not valid JSON, keeping as text in response",
-                    err=True,
-                )
-                _write_output(llm_response, output, "Original response")
+                logger.info("LLM content is not valid JSON, keeping as text in response")
+                _write_output(llm_response, output, "Original response", logger)
         else:
-            _write_output(llm_response, output, "Raw response")
+            _write_output(llm_response, output, "Raw response", logger)
 
     except json.JSONDecodeError:
-        click.echo(
-            "Warning: Could not parse OpenRouter response, outputting raw response",
-            err=True,
-        )
-        _write_output(llm_response, output, "Raw response")
+        logger.warning("Could not parse OpenRouter response, outputting raw response")
+        _write_output(llm_response, output, "Raw response", logger)
 
-    if verbose:
-        _log_analysis_summary(llm_response, date, model)
+    if logger.level <= logging.DEBUG:
+        _log_analysis_summary(llm_response, date, model, logger)
 
 
 def _extract_json_from_content(content: str) -> Optional[str]:
@@ -389,46 +477,108 @@ def _find_json_arrays(content: str) -> list[str]:
     return candidates
 
 
-def _write_output(content: str, output: Optional[str], description: str) -> None:
+def _write_output(content: str, output: Optional[str], description: str, logger: logging.Logger) -> None:
     """Write content to output file or stdout."""
     if output:
         with open(output, "w", encoding="utf-8") as f:
             f.write(content)
-        click.echo(f"{description} saved to: {output}", err=True)
+        logger.info(f"{description} saved to: {output}")
     else:
         print(content)
 
 
-def _log_analysis_summary(llm_response: str, date: str, model: str) -> None:
+def _log_cache_cleanup_info(cache_cleanup_days: Optional[int], skip_cleanup: bool, logger: logging.Logger) -> None:
+    """Log cache cleanup information."""
+    if skip_cleanup or os.getenv("SKIP_CLEANUP") == "1":
+        logger.info("Cache cleanup: DISABLED (skipped by user request)")
+    else:
+        days = cache_cleanup_days or int(os.getenv("CACHE_CLEANUP_DAYS", "14"))
+        if days <= 0:
+            logger.info("Cache cleanup: DISABLED (days <= 0)")
+        else:
+            logger.info(f"Cache cleanup: ENABLED (files older than {days} days will be removed)")
+
+
+def _log_analysis_summary(llm_response: str, date: str, model: str, logger: logging.Logger) -> None:
     """Log analysis summary if possible."""
     try:
         analysis = RathausUmschauAnalysis.from_llm_response(llm_response, date, model)
-        click.echo("Analysis summary:", err=True)
-        click.echo(f"  - Summary length: {len(analysis.summary)} characters", err=True)
-        click.echo(f"  - {len(analysis.announcements)} announcements", err=True)
-        click.echo(f"  - {len(analysis.events)} events", err=True)
-        click.echo(f"  - {len(analysis.important_dates)} important dates", err=True)
+        logger.debug("Analysis summary:")
+        logger.debug(f"  - Summary length: {len(analysis.summary)} characters")
+        logger.debug(f"  - {len(analysis.announcements)} announcements")
+        logger.debug(f"  - {len(analysis.events)} events")
+        logger.debug(f"  - {len(analysis.important_dates)} important dates")
     except Exception as e:
-        click.echo(
-            f"Note: Could not parse LLM response as structured data: {e}",
-            err=True,
-        )
+        logger.debug(f"Could not parse LLM response as structured data: {e}")
 
 
-def _cleanup_temp_files(cache: Optional[PDFCache], pdf_path: Optional[str]) -> None:
+def _cleanup_temp_files(cache: Optional[PDFCache], pdf_path: Optional[str], logger: logging.Logger) -> None:
     """Cleanup temporary files if not cached."""
     if not cache and pdf_path and os.path.exists(pdf_path):
         os.remove(pdf_path)
+        logger.debug(f"Cleaned up temporary file: {pdf_path}")
 
 
-def _handle_error(e: Exception, verbose: bool) -> None:
+def _handle_error(e: Exception, logger: logging.Logger) -> None:
     """Handle and log errors."""
-    click.echo(f"Error: {e}", err=True)
-    if verbose:
-        import traceback
-
-        click.echo(traceback.format_exc(), err=True)
+    error_msg = f"Error: {e}"
+    logger.error(error_msg)
+    logger.debug("Full traceback:", exc_info=True)
+    # Also output to stderr for CLI visibility
+    click.echo(error_msg, err=True)
     raise click.Abort()
+
+
+def _cleanup_old_cache_files(
+    cache_root: str, 
+    cache_cleanup_days: Optional[int], 
+    skip_cleanup: bool, 
+    logger: logging.Logger
+) -> None:
+    """Clean up old cache files based on age."""
+    if skip_cleanup or os.getenv("SKIP_CLEANUP") == "1":
+        logger.debug("Cache cleanup skipped by user request")
+        return
+    
+    days = cache_cleanup_days or int(os.getenv("CACHE_CLEANUP_DAYS", "14"))
+    if days <= 0:
+        logger.debug("Cache cleanup disabled (days <= 0)")
+        return
+    
+    cutoff_time = time.time() - (days * 24 * 3600)
+    
+    # Clean up PDF cache
+    pdf_cache_dir = os.path.join(cache_root, "pdf_cache")
+    _cleanup_directory_by_age(pdf_cache_dir, cutoff_time, logger, "PDF")
+    
+    # Clean up markdown cache
+    markdown_cache_dir = os.path.join(cache_root, "markdown")
+    _cleanup_directory_by_age(markdown_cache_dir, cutoff_time, logger, "Markdown")
+    
+    # Clean up downloads cache
+    downloads_cache_dir = os.path.join(cache_root, "downloads")
+    _cleanup_directory_by_age(downloads_cache_dir, cutoff_time, logger, "Downloads")
+
+
+def _cleanup_directory_by_age(directory: str, cutoff_time: float, logger: logging.Logger, name: str) -> None:
+    """Clean up files in a directory older than cutoff time."""
+    if not os.path.exists(directory):
+        return
+    
+    removed_count = 0
+    for filename in os.listdir(directory):
+        filepath = os.path.join(directory, filename)
+        if os.path.isfile(filepath) and os.path.getmtime(filepath) < cutoff_time:
+            try:
+                os.remove(filepath)
+                removed_count += 1
+            except (OSError, IOError) as e:
+                logger.warning(f"Could not remove {name} cache file {filepath}: {e}")
+    
+    if removed_count > 0:
+        logger.info(f"Cleaned up {removed_count} old {name} cache files (older than {int((time.time() - cutoff_time) / (24 * 3600))} days)")
+    else:
+        logger.debug(f"No old {name} cache files to clean up")
 
 
 if __name__ == "__main__":

@@ -9,7 +9,7 @@ from unittest.mock import patch, MagicMock
 
 def test_basic_imports():
     """Test that all modules can be imported"""
-    from rubot import cli, config, downloader, llm, marker, models, utils
+    from rubot import cli, config, downloader, llm, models, utils
 
     assert True
 
@@ -70,4 +70,4 @@ def test_cli_help():
     runner = CliRunner()
     result = runner.invoke(main, ["--help"])
     assert result.exit_code == 0
-    assert "Download Rathaus-Umschau PDF" in result.output
+    assert "CLI tool for downloading and processing Rathaus-Umschau PDFs" in result.output
