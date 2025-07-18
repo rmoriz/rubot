@@ -103,6 +103,7 @@ cache_cleanup_days: Optional[int], skip_cleanup: bool,
         cache = _setup_cache(no_cache, cache_dir, app_config, logger)
 
         _log_processing_info(date, model, temperature, max_tokens, logger)
+        _log_cache_cleanup_info(cache_cleanup_days, skip_cleanup, logger)
 
         pdf_path = _download_pdf_with_cache(date, cache, app_config, logger)
         markdown_content = _convert_to_markdown(
@@ -362,14 +363,34 @@ def _convert_to_markdown(
 
 
 def _convert_pdf_standard(doc: Any, logger: logging.Logger) -> str:
-    """Standard PDF conversion for smaller files."""
+    """Standard PDF conversion for smaller files with OCR fallback."""
     try:
         markdown_parts = []
+        ocr_pages = 0
         
         for page_num in range(len(doc)):
             try:
                 page = doc.load_page(page_num)
                 text = page.get_text("text")
+                
+                # If no text found, try OCR with Tesseract
+                if not text.strip():
+                    logger.info(f"No text found on page {page_num + 1}, attempting OCR...")
+                    try:
+                        import fitz
+                        # Use PyMuPDF's OCR with Tesseract
+                        tp = page.get_textpage_ocr(flags=0, language="deu")
+                        ocr_text = tp.extractText()
+                        if ocr_text.strip():
+                            text = ocr_text
+                            ocr_pages += 1
+                            logger.info(f"OCR successful on page {page_num + 1} - extracted {len(ocr_text)} characters")
+                        else:
+                            logger.warning(f"OCR produced no text on page {page_num + 1}")
+                            text = "[Image-based page - no text extractable]"
+                    except Exception as ocr_error:
+                        logger.warning(f"OCR failed on page {page_num + 1}: {ocr_error}")
+                        text = "[No text extractable - image-based page]"
                 
                 if text.strip():
                     if len(doc) > 1:
@@ -381,24 +402,48 @@ def _convert_pdf_standard(doc: Any, logger: logging.Logger) -> str:
                 logger.error(f"Error processing page {page_num + 1}: {e}")
                 continue
         
+        # OCR Summary
+        if ocr_pages > 0:
+            logger.info(f"OCR Summary: {ocr_pages} pages successfully processed with OCR")
+        
         return "\n\n".join(markdown_parts)
     except Exception as e:
         raise RuntimeError(f"Error during standard PDF conversion: {e}")
 
 
 def _convert_large_pdf_streaming(doc: Any, logger: logging.Logger) -> str:
-    """Streaming PDF conversion for large files to manage memory."""
+    """Streaming PDF conversion for large files with OCR fallback."""
     try:
         import io
         import gc
         
         output_buffer = io.StringIO()
         total_pages = len(doc)
+        ocr_pages = 0
         
         for page_num in range(total_pages):
             try:
                 page = doc.load_page(page_num)
                 text = page.get_text("text")
+                
+                # If no text found, try OCR with Tesseract
+                if not text.strip():
+                    logger.info(f"No text found on page {page_num + 1}, attempting OCR...")
+                    try:
+                        import fitz
+                        # Use PyMuPDF's OCR with Tesseract
+                        tp = page.get_textpage_ocr(flags=0, language="deu")
+                        ocr_text = tp.extractText()
+                        if ocr_text.strip():
+                            text = ocr_text
+                            ocr_pages += 1
+                            logger.info(f"OCR successful on page {page_num + 1} - extracted {len(ocr_text)} characters")
+                        else:
+                            logger.warning(f"OCR produced no text on page {page_num + 1}")
+                            text = "[Image-based page - no text extractable]"
+                    except Exception as ocr_error:
+                        logger.warning(f"OCR failed on page {page_num + 1}: {ocr_error}")
+                        text = "[No text extractable - image-based page]"
                 
                 if text.strip():
                     if total_pages > 1:
@@ -418,6 +463,10 @@ def _convert_large_pdf_streaming(doc: Any, logger: logging.Logger) -> str:
         
         result = output_buffer.getvalue().strip()
         output_buffer.close()
+        
+        # OCR Summary
+        if ocr_pages > 0:
+            logger.info(f"OCR Summary: {ocr_pages} pages successfully processed with OCR")
         
         return result
     except Exception as e:
@@ -595,6 +644,18 @@ def _write_output(content: str, output: Optional[str], description: str, logger:
         logger.info(f"{description} saved to: {output}")
     else:
         print(content)
+
+
+def _log_cache_cleanup_info(cache_cleanup_days: Optional[int], skip_cleanup: bool, logger: logging.Logger) -> None:
+    """Log cache cleanup information."""
+    if skip_cleanup or os.getenv("SKIP_CLEANUP") == "1":
+        logger.info("Cache cleanup: DISABLED (skipped by user request)")
+    else:
+        days = cache_cleanup_days or int(os.getenv("CACHE_CLEANUP_DAYS", "14"))
+        if days <= 0:
+            logger.info("Cache cleanup: DISABLED (days <= 0)")
+        else:
+            logger.info(f"Cache cleanup: ENABLED (files older than {days} days will be removed)")
 
 
 def _log_analysis_summary(llm_response: str, date: str, model: str, logger: logging.Logger) -> None:

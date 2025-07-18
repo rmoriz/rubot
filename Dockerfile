@@ -1,14 +1,23 @@
-# Multi-stage build for optimized production image
-FROM python:3.13-slim AS builder
+# Multi-stage build for optimized Alpine production image
+FROM python:3.13-alpine AS builder
 
-# Install minimal build dependencies
-RUN apt-get update && apt-get install -y \
+# Install build dependencies for PyMuPDF compilation
+RUN apk add --no-cache \
     gcc \
     g++ \
-    build-essential \
+    musl-dev \
     libffi-dev \
     python3-dev \
-    && rm -rf /var/lib/apt/lists/* \
+    linux-headers \
+    make \
+    cmake \
+    clang-dev \
+    llvm-dev \
+    freetype-dev \
+    harfbuzz-dev \
+    jpeg-dev \
+    openjpeg-dev \
+    jbig2dec-dev \
     && pip install --upgrade pip
 
 WORKDIR /app
@@ -21,19 +30,24 @@ RUN pip install --no-cache-dir --user -r requirements.txt
 COPY . .
 RUN pip install --no-cache-dir --user -e .
 
-# Production stage - minimal runtime image
-FROM python:3.13-slim AS production
+# Production stage - minimal Alpine runtime image
+FROM python:3.13-alpine AS production
 
-# Install only essential runtime dependencies
-RUN apt-get update && apt-get install -y \
-    libffi8 \
-    && rm -rf /var/lib/apt/lists/* \
-    && useradd -r -s /bin/bash rubot
+# Install runtime dependencies including Tesseract
+RUN apk add --no-cache \
+    libffi \
+    tesseract-ocr \
+    tesseract-ocr-data-deu \
+    tesseract-ocr-data-eng \
+    freetype \
+    harfbuzz \
+    jpeg \
+    openjpeg \
+    jbig2dec \
+    && addgroup -g 1000 rubot \
+    && adduser -u 1000 -G rubot -s /bin/sh -D rubot
 
-# Create cache directory and set permissions before switching user
-RUN mkdir -p /app/cache && chown rubot:rubot /app/cache
-
-# Create cache directory with proper permissions
+# Create cache directory and set permissions
 RUN mkdir -p /tmp/cache && \
     chown -R rubot:rubot /tmp/cache
 
@@ -49,35 +63,49 @@ ENV PYTHONPATH=/home/rubot/.local/lib/python3.13/site-packages
 ENV CACHE_ROOT=/tmp/cache
 ENV XDG_CACHE_HOME=/tmp/cache
 
-# Create writable directories and fix permissions before switching to rubot user
-RUN mkdir -p /tmp/cache && \
-    chown -R rubot:rubot /tmp/cache
-
 WORKDIR /app
 USER rubot
 
 ENTRYPOINT ["python", "-m", "rubot"]
 
-# Development stage - for local development
-FROM python:3.13-slim AS dev
+# Development stage - Alpine development image
+FROM python:3.13-alpine AS dev
 
-RUN apt-get update && apt-get install -y \
+# Install development dependencies including Tesseract
+RUN apk add --no-cache \
     git \
     gcc \
     g++ \
-    build-essential \
+    musl-dev \
     libffi-dev \
     python3-dev \
+    linux-headers \
+    make \
+    cmake \
+    clang-dev \
+    llvm-dev \
+    freetype-dev \
+    harfbuzz-dev \
+    jpeg-dev \
+    openjpeg-dev \
+    jbig2dec-dev \
+    tesseract-ocr \
+    tesseract-ocr-data-deu \
+    tesseract-ocr-data-eng \
     bash \
-    && rm -rf /var/lib/apt/lists/* \
-    && pip install --upgrade pip
+    \u0026\u0026 pip install --upgrade pip
 
 WORKDIR /app
 
+# Install Python packages
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Install the application with dev dependencies
 COPY . .
 RUN pip install --no-cache-dir -e ".[dev]"
 
-CMD ["bash"]
+# Create cache directory for development
+RUN mkdir -p /tmp/cache
+
+CMD ["sh"]
