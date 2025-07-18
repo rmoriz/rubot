@@ -1,4 +1,4 @@
 click>=8.1.0
 requests>=2.31.0
 python-dotenv>=1.0.0
-marker-pdf==1.8.2
+PyMuPDF>=1.23.0

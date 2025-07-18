@@ -9,7 +9,7 @@ description = "CLI tool for downloading and processing Rathaus-Umschau PDFs"
 readme = "README.md"
 license = {text = "GPL-3.0"}
 authors = [
-    {name = "rmoriz", email = "rmoriz@users.noreply.github.com"}
+    {name = "Roland Moriz", email = "rmoriz@users.noreply.github.com"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",

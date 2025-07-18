@@ -6,7 +6,6 @@ Basic usage example for rubot as a Python library
 import os
 from rubot.config import RubotConfig
 from rubot.downloader import download_pdf
-from rubot.marker import convert_pdf_to_markdown
 from rubot.llm import process_with_openrouter
 from rubot.models import RathausUmschauAnalysis
 
@@ -29,7 +28,20 @@ def main():
     
     # Step 2: Convert to Markdown
     print("Converting to Markdown...")
-    markdown_content = convert_pdf_to_markdown(pdf_path, use_cache=True, verbose=True)
+    import fitz  # type: ignore
+    doc = fitz.open(pdf_path)
+    markdown_parts = []
+    
+    for page_num in range(len(doc)):
+        page = doc.load_page(page_num)
+        text = page.get_text("text")
+        if text.strip():
+            if len(doc) > 1:
+                markdown_parts.append(f"\n# Page {page_num + 1}\n")
+            markdown_parts.append(text.strip())
+    
+    doc.close()
+    markdown_content = "\n\n".join(markdown_parts)
     
     # Step 3: Process with LLM
     print("Processing with LLM...")

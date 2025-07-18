@@ -31,7 +31,7 @@ graph LR
 ```
 
 1. **📥 Downloads** Rathaus-Umschau PDFs from Munich's official website
-2. **🔄 Converts** PDFs to clean Markdown using `marker-pdf`
+2. **🔄 Converts** PDFs to clean Markdown using `PyMuPDF`
 3. **🧠 Analyzes** content with your choice of AI model via OpenRouter
 4. **📤 Outputs** structured JSON with extracted announcements and events
 
@@ -41,7 +41,7 @@ graph LR
 
 - 🐍 **Python 3.13+**
 - 🔑 **OpenRouter API key** ([Get yours here](https://openrouter.ai/))
-- 💾 **5-8GB RAM** (for PDF conversion with `marker-pdf`, also in Docker)
+- 💾 **1-2GB RAM** (for PDF conversion with `PyMuPDF`, also in Docker)
 
 ### ⚡ One-Line Installation
 
@@ -65,7 +65,6 @@ source rubot-env/bin/activate  # On Windows: rubot-env\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
-pip install git+https://github.com/datalab-to/marker.git
 ```
 
 </details>
@@ -417,14 +416,9 @@ We welcome contributions! Here's how to get started:
 
 This project is licensed under the **GNU General Public License v3.0** - see the [LICENSE](LICENSE) file for details.
 
-### ⚠️ Important Licensing Notice
+### ✅ Licensing
 
-**Commercial Usage Restrictions**: This project uses `marker-pdf` for PDF to Markdown conversion. Parts of marker-pdf are licensed under **CC-BY-NC-SA-4.0**, which **restricts commercial usage**. 
-
-🔗 **For commercial use**, please review the licensing details and commercial options at:  
-**[marker-pdf Commercial Usage Guide](https://github.com/datalab-to/marker/blob/master/README.md#commercial-usage)**
-
-If you plan to use rubot in a commercial environment, ensure you comply with marker-pdf's licensing requirements or consider alternative PDF processing solutions.
+This project uses `PyMuPDF` (AGPL-3.0) for PDF to Markdown conversion, which enables commercial usage. The AGPL license requires that all derivative works are also published under AGPL.
 
 ## 🆘 Support & Community
 

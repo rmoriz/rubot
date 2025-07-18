@@ -33,7 +33,7 @@ graph LR
 ```
 
 1. **📥 Lädt** Rathaus-Umschau PDFs von der offiziellen Münchner Website herunter
-2. **🔄 Konvertiert** PDFs in sauberes Markdown mit `marker-pdf`
+2. **🔄 Konvertiert** PDFs in sauberes Markdown mit `PyMuPDF`
 3. **🧠 Analysiert** Inhalt mit Ihrer Wahl eines KI-Modells über OpenRouter
 4. **📤 Gibt** strukturiertes JSON mit extrahierten Ankündigungen und Veranstaltungen aus
 
@@ -43,7 +43,7 @@ graph LR
 
 - 🐍 **Python 3.13+**
 - 🔑 **OpenRouter API-Schlüssel** ([Hier erhalten](https://openrouter.ai/))
-- 💾 **5-8GB RAM** (für die PDF-Konvertierung mit `marker-pdf`, auch in Docker)
+- 💾 **1-2GB RAM** (für die PDF-Konvertierung mit `PyMuPDF`, auch in Docker)
 
 ### ⚡ Einzeilige Installation
 
@@ -67,7 +67,6 @@ source rubot-env/bin/activate  # Unter Windows: rubot-env\Scripts\activate
 
 # Abhängigkeiten installieren
 pip install -r requirements.txt
-pip install git+https://github.com/datalab-to/marker.git
 ```
 
 </details>
@@ -419,14 +418,9 @@ Wir heißen Beiträge willkommen! So können Sie loslegen:
 
 Dieses Projekt ist unter der **GNU General Public License v3.0** lizenziert - siehe die [LICENSE](LICENSE)-Datei für Details.
 
-### ⚠️ Wichtiger Lizenz-Hinweis
+### ✅ Lizenz
 
-**Kommerzielle Nutzungsbeschränkungen**: Dieses Projekt verwendet `marker-pdf` für die PDF-zu-Markdown-Konvertierung. Teile von marker-pdf sind unter **CC-BY-NC-SA-4.0** lizenziert, was **kommerzielle Nutzung einschränkt**. 
-
-🔗 **Für kommerzielle Nutzung**, bitte überprüfen Sie die Lizenzdetails und kommerziellen Optionen unter:  
-**[marker-pdf Kommerzielle Nutzungsanleitung](https://github.com/datalab-to/marker/blob/master/README.md#commercial-usage)**
-
-Wenn Sie planen, rubot in einer kommerziellen Umgebung zu verwenden, stellen Sie sicher, dass Sie die Lizenzanforderungen von marker-pdf einhalten oder alternative PDF-Verarbeitungslösungen in Betracht ziehen.
+Dieses Projekt verwendet `PyMuPDF` (AGPL-3.0) für die PDF-zu-Markdown-Konvertierung, was eine kommerzielle Nutzung ermöglicht. Die AGPL-Lizenz erfordert jedoch, dass alle abgeleiteten Werke ebenfalls unter AGPL veröffentlicht werden.
 
 ## 🆘 Support & Community
 

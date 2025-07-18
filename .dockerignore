@@ -1,28 +1,38 @@
-# Git
-.git
-.gitignore
-
 # Python
-__pycache__
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
-env
-pip-log.txt
-pip-delete-this-directory.txt
-.tox
-.coverage
-.coverage.*
-.pytest_cache
-htmlcov
-
-# Virtual environments
+env/
 venv/
 .venv/
-ENV/
-env/
-.env
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.pytest_cache/
+
+# Git
+.git/
+.gitignore
+
+# Documentation
+README.md
+README_EN.md
+*.md
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
 
 # IDE
 .vscode/
@@ -33,41 +43,39 @@ env/
 
 # OS
 .DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
 Thumbs.db
-
-# Project specific
-*.pdf
-result.json
-tmp_*
-htmlcov/
-.pytest_cache/
-*.egg-info/
-
-# Documentation
-docs/
-README.md
-CHANGELOG.md
-
-# Tests and development files
-tests/
-.github/
-scripts/
-examples/
-.pytest_cache/
-.coverage
-htmlcov/
 
 # Build artifacts
 build/
 dist/
 *.egg-info/
 
-# Docker files
-Dockerfile
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Docker
+Dockerfile*
+docker-compose*.yml
 .dockerignore
-docker-compose.yml
+
+# Environment files
+.env
+.env.*
+
+# Cache directories
+.cache/
+.pytest_cache/
+.mypy_cache/
+
+# Testing
+tests/
+test_*.py
+*_test.py
+
+# Development
+.devcontainer/
+docs/
+examples/
+EOF < /dev/null
