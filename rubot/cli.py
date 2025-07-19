@@ -324,6 +324,8 @@ def _convert_to_markdown(
         do_table_structure=app_config.docling_do_table_structure,
         image_mode=app_config.docling_image_mode,
         image_placeholder=app_config.docling_image_placeholder,
+        use_cpu_only=app_config.docling_use_cpu_only,
+        max_image_size=app_config.docling_max_image_size,
     )
 
     # Convert with Docling

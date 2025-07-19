@@ -47,6 +47,11 @@ class RubotConfig:
     docling_model_cache_dir: Optional[str] = None
     docling_image_mode: str = "placeholder"
     docling_image_placeholder: str = "<!-- image -->"
+    
+    # Memory optimization settings
+    docling_use_cpu_only: bool = False
+    docling_batch_size: int = 1
+    docling_max_image_size: int = 1024
 
     @classmethod
     def from_env(cls, env_file: Optional[str] = None) -> "RubotConfig":
@@ -104,6 +109,10 @@ class RubotConfig:
             docling_image_placeholder=os.getenv(
                 "DOCLING_IMAGE_PLACEHOLDER", "<!-- image -->"
             ),
+            # Memory optimization settings
+            docling_use_cpu_only=os.getenv("DOCLING_USE_CPU_ONLY", "false").lower() == "true",
+            docling_batch_size=int(os.getenv("DOCLING_BATCH_SIZE", "1")),
+            docling_max_image_size=int(os.getenv("DOCLING_MAX_IMAGE_SIZE", "1024")),
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -130,6 +139,9 @@ class RubotConfig:
             "docling_model_cache_dir": self.docling_model_cache_dir,
             "docling_image_mode": self.docling_image_mode,
             "docling_image_placeholder": self.docling_image_placeholder,
+            "docling_use_cpu_only": self.docling_use_cpu_only,
+            "docling_batch_size": self.docling_batch_size,
+            "docling_max_image_size": self.docling_max_image_size,
         }
 
 

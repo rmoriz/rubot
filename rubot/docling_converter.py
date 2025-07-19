@@ -25,6 +25,10 @@ class DoclingConfig:
     # Image handling options
     image_mode: str = "placeholder"  # placeholder, embedded, referenced
     image_placeholder: str = "<!-- image -->"
+    # Memory optimization settings
+    use_cpu_only: bool = False
+    batch_size: int = 1
+    max_image_size: int = 1024
 
 
 class DoclingPDFConverter:
@@ -43,8 +47,15 @@ class DoclingPDFConverter:
 
     def _create_converter(self) -> DocumentConverter:
         """Create and configure DocumentConverter"""
-        # Use default DocumentConverter which provides excellent performance
-        # Docling has built-in optimizations for text extraction vs OCR
+        # Configure for memory optimization
+        import os
+        
+        # Force CPU usage if configured
+        if self.config.use_cpu_only:
+            os.environ["CUDA_VISIBLE_DEVICES"] = ""
+        
+        # Use simple DocumentConverter initialization
+        # Docling handles memory optimization internally based on available resources
         return DocumentConverter()
 
     def convert_to_markdown(self, pdf_path: str) -> str:
@@ -83,6 +94,13 @@ class DoclingPDFConverter:
 
             return markdown_content
 
+        except RuntimeError as e:
+            if "could not create a primitive" in str(e):
+                self.logger.error("Memory/runtime error in Docling conversion")
+                self.logger.error("Try setting DOCLING_DO_OCR=false and DOCLING_DO_TABLE_STRUCTURE=false")
+                self.logger.error("Or reduce PDF size with MAX_PDF_PAGES=10")
+            self.logger.error(f"Docling conversion failed: {e}")
+            raise RuntimeError(f"PDF conversion failed: {e}") from e
         except Exception as e:
             self.logger.error(f"Docling conversion failed: {e}")
             raise RuntimeError(f"PDF conversion failed: {e}") from e
