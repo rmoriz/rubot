@@ -183,6 +183,10 @@ DEFAULT_SYSTEM_PROMPT="Analyze the document..." rubot --date 2024-01-15
 
 ## 🐳 Docker Usage
 
+### ⚠️ Virtualization Notice
+
+**Important for VM users:** Avoid using the `qemu64` CPU architecture in virtual machines as it can cause PyTorch to crash. See the [Virtualization Documentation](docs/VIRTUALIZATION.md) for more details.
+
 ### 🚢 Using Pre-built Image
 
 ```bash
