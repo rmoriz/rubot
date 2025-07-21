@@ -9,11 +9,23 @@
 [![Docker](https://img.shields.io/badge/docker-available-blue.svg)](https://github.com/rmoriz/rubot/pkgs/container/rubot)
 [![Tests](https://github.com/rmoriz/rubot/workflows/Test%20rubot/badge.svg)](https://github.com/rmoriz/rubot/actions)
 
-*Automatisiere die Extraktion und Analyse der offiziellen städtischen Ankündigungen Münchens*
+_Automatisiere die Extraktion und Analyse der offiziellen städtischen Ankündigungen Münchens_
 
 📖 [English README](README_EN.md)
 
 [🚀 Schnellstart](#-schnellstart) • [📖 Dokumentation](#-konfiguration) • [🐳 Docker](#-docker-verwendung) • [🤝 Mitwirken](#-mitwirken)
+
+</div>
+
+---
+
+## 📱 Das Resultat täglich auf Mastodon!
+
+<div align="center">
+
+![Lisa Radieschen](docs/lisa_radieschen.jpeg)
+
+**Folge [@lisa_radieschen@social.entrypoint.sh](https://social.entrypoint.sh/@lisa_radieschen) auf Mastodon/Fediverse um täglich um 13 Uhr das Ergebnis dieses Workflows zu sehen.**
 
 </div>
 
@@ -130,27 +142,25 @@ docker-compose up
 
 **OCR Engine Vergleich:**
 
-| Engine | Vorteile | Nachteile | Startup-Zeit |
-|--------|----------|-----------|--------------|
-| **EasyOCR** | Höhere Genauigkeit, bessere Schrifterkennung | Größere Modelle (~100MB) | ~1.2s |
-| **Tesseract** | Schneller Start, etabliert, ressourcenschonend | Geringere Genauigkeit bei komplexen Layouts | ~0.6s |
+| Engine        | Vorteile                                       | Nachteile                                   | Startup-Zeit |
+| ------------- | ---------------------------------------------- | ------------------------------------------- | ------------ |
+| **EasyOCR**   | Höhere Genauigkeit, bessere Schrifterkennung   | Größere Modelle (~100MB)                    | ~1.2s        |
+| **Tesseract** | Schneller Start, etabliert, ressourcenschonend | Geringere Genauigkeit bei komplexen Layouts | ~0.6s        |
 
 **Beide Engines sind im Docker-Image verfügbar** - keine separaten Builds erforderlich!
-
-
 
 ### 📈 Migration zu Docling - Verbesserungen
 
 rubot wurde von PyMuPDF auf Docling migriert für deutlich bessere Ergebnisse:
 
-| Aspekt | Vorher (PyMuPDF) | Nachher (Docling) | Verbesserung |
-|--------|------------------|-------------------|--------------|
-| **Text-Extraktion** | Basis-Textextraktion | Layout-bewusste Analyse | 🚀 **Deutlich besser** |
-| **Tabellen** | Keine Strukturerkennung | Vollständige Tabellen-Analyse | 🆕 **Neu verfügbar** |
-| **OCR-Engines** | Nur Tesseract | EasyOCR + Tesseract | ⚡ **Dual-Engine** |
-| **Dokumentverständnis** | Seitenweise Verarbeitung | Intelligente Layout-Erkennung | 🧠 **Viel intelligenter** |
-| **Performance** | Immer OCR auf allen Seiten | Optimierte OCR-Nutzung | 🚀 **Deutlich schneller** |
-| **Produktionsreife** | Basis-Funktionalität | Enterprise-ready | 🎯 **Produktionsreif** |
+| Aspekt                  | Vorher (PyMuPDF)           | Nachher (Docling)             | Verbesserung              |
+| ----------------------- | -------------------------- | ----------------------------- | ------------------------- |
+| **Text-Extraktion**     | Basis-Textextraktion       | Layout-bewusste Analyse       | 🚀 **Deutlich besser**    |
+| **Tabellen**            | Keine Strukturerkennung    | Vollständige Tabellen-Analyse | 🆕 **Neu verfügbar**      |
+| **OCR-Engines**         | Nur Tesseract              | EasyOCR + Tesseract           | ⚡ **Dual-Engine**        |
+| **Dokumentverständnis** | Seitenweise Verarbeitung   | Intelligente Layout-Erkennung | 🧠 **Viel intelligenter** |
+| **Performance**         | Immer OCR auf allen Seiten | Optimierte OCR-Nutzung        | 🚀 **Deutlich schneller** |
+| **Produktionsreife**    | Basis-Funktionalität       | Enterprise-ready              | 🎯 **Produktionsreif**    |
 
 ### 📸 Bild-Verarbeitung
 
@@ -251,22 +261,22 @@ rubot --date 2025-07-17 --skip-cleanup
 
 ### 🛠️ CLI-Optionen
 
-| Option | Beschreibung | Standard | Umgebungsvariable |
-|--------|-------------|----------|-------------------|
-| `--date` | 📅 Datum im JJJJ-MM-TT-Format | heute | - |
-| `--output` | 📁 Ausgabedateipfad | stdout | - |
-| `--prompt` | 📝 Pfad zur System-Prompt-Datei | - | DEFAULT_PROMPT_FILE |
-| `--model` | 🤖 OpenRouter-Modell-ID | - | DEFAULT_MODEL |
-| `--temperature` | 🌡️ LLM-Temperatur | 0.8 | DEFAULT_TEMPERATURE |
-| `--max-tokens` | 🔢 Maximale Tokens für Antwort | 4000 | DEFAULT_MAX_TOKENS |
-| `--config` | ⚙️ Pfad zur Config-Datei | .env | - |
-| `--no-cache` | 🚫 Cache deaktivieren | false | CACHE_ENABLED=false |
-| `--cache-dir` | 📂 Benutzerdefinierter Cache-Ordner | System-Temp | CACHE_DIR |
-| `--cache-cleanup-days` | 🧹 Cache-Dateien nach N Tagen löschen | 14 | CACHE_CLEANUP_DAYS |
-| `--skip-cleanup` | 🚫 Cache-Cleanup überspringen | false | SKIP_CLEANUP=1 |
-| `--verbose` | 🔍 Debug-Ausgabe aktivieren | false | LOG_LEVEL=DEBUG |
-| `-h/--help` | ❓ Hilfemeldung anzeigen | - | - |
-| `--version` | 🔢 Versionsnummer anzeigen | - | - |
+| Option                 | Beschreibung                          | Standard    | Umgebungsvariable   |
+| ---------------------- | ------------------------------------- | ----------- | ------------------- |
+| `--date`               | 📅 Datum im JJJJ-MM-TT-Format         | heute       | -                   |
+| `--output`             | 📁 Ausgabedateipfad                   | stdout      | -                   |
+| `--prompt`             | 📝 Pfad zur System-Prompt-Datei       | -           | DEFAULT_PROMPT_FILE |
+| `--model`              | 🤖 OpenRouter-Modell-ID               | -           | DEFAULT_MODEL       |
+| `--temperature`        | 🌡️ LLM-Temperatur                     | 0.8         | DEFAULT_TEMPERATURE |
+| `--max-tokens`         | 🔢 Maximale Tokens für Antwort        | 4000        | DEFAULT_MAX_TOKENS  |
+| `--config`             | ⚙️ Pfad zur Config-Datei              | .env        | -                   |
+| `--no-cache`           | 🚫 Cache deaktivieren                 | false       | CACHE_ENABLED=false |
+| `--cache-dir`          | 📂 Benutzerdefinierter Cache-Ordner   | System-Temp | CACHE_DIR           |
+| `--cache-cleanup-days` | 🧹 Cache-Dateien nach N Tagen löschen | 14          | CACHE_CLEANUP_DAYS  |
+| `--skip-cleanup`       | 🚫 Cache-Cleanup überspringen         | false       | SKIP_CLEANUP=1      |
+| `--verbose`            | 🔍 Debug-Ausgabe aktivieren           | false       | LOG_LEVEL=DEBUG     |
+| `-h/--help`            | ❓ Hilfemeldung anzeigen              | -           | -                   |
+| `--version`            | 🔢 Versionsnummer anzeigen            | -           | -                   |
 
 ### 📝 Prompt-Datei-Validierung
 
@@ -289,6 +299,7 @@ DEFAULT_SYSTEM_PROMPT="Analysiere das Dokument..." rubot --date 2024-01-15
 ```
 
 **Vorteile:**
+
 - 🚀 **Schneller Fehlschlag**: Keine Zeit mit PDF-Downloads verschwendet
 - 🐳 **Docker-freundlich**: Erkennt Volume-Mount-Probleme frühzeitig
 - 🔍 **Klare Fehlermeldungen**: Zeigt genau welche Datei fehlt
@@ -326,7 +337,7 @@ docker run --rm \
 <summary>Klicken für docker-compose.yml</summary>
 
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   rubot:
     image: ghcr.io/rmoriz/rubot:latest
@@ -340,9 +351,17 @@ services:
     volumes:
       - ./cache:/app/cache
       - ./output:/app/output
-      - ./models:/app/models  # Persistente Modell-Cache
-      - ./prompts:/app/prompts  # Prompt-Dateien mounten
-    command: ["--date", "2024-01-15", "--output", "/app/output/ergebnis.json", "--prompt", "/app/prompts/default.txt"]
+      - ./models:/app/models # Persistente Modell-Cache
+      - ./prompts:/app/prompts # Prompt-Dateien mounten
+    command:
+      [
+        "--date",
+        "2024-01-15",
+        "--output",
+        "/app/output/ergebnis.json",
+        "--prompt",
+        "/app/prompts/default.txt",
+      ]
 ```
 
 </details>
@@ -353,10 +372,10 @@ rubot funktioniert mit **jedem OpenRouter-kompatiblen Modell**. Wählen Sie basi
 
 ### 🏆 Empfohlene Modelle
 
-| Modell | Anbieter | Beste für | Kosten |
-|-------|----------|----------|------|
+| Modell                    | Anbieter    | Beste für                  | Kosten    |
+| ------------------------- | ----------- | -------------------------- | --------- |
 | `moonshotai/kimi-k2:free` | Moonshot AI | 📝 Textanalyse, Nachdenken | Kostenlos |
-| `x-ai/grok-3-mini` | xAI | 🎯 Schnell, zuverlässig | Billig |
+| `x-ai/grok-3-mini`        | xAI         | 🎯 Schnell, zuverlässig    | Billig    |
 
 > 💡 **Tipp**: Starten Sie mit dem kostenlosen `moonshotai/kimi-k2:free` für Textanalyse.
 
@@ -410,7 +429,7 @@ Das Tool gibt **strukturiertes JSON** mit extrahierter Information aus:
 
 - **📝 Zusammenfassung**: KI-generierter Überblick über das Dokument
 - **📢 Ankündigungen**: Städtische Entscheidungen, Politikänderungen, öffentliche Bekanntmachungen
-- **🎉 Veranstaltungen**: Bevorstehende Veranstaltungen, Treffen, öffentliche Versammlungen  
+- **🎉 Veranstaltungen**: Bevorstehende Veranstaltungen, Treffen, öffentliche Versammlungen
 - **📊 Metadaten**: Verarbeitungsinformationen und Quelldetails
 
 ## 👨‍💻 Entwicklung
@@ -434,7 +453,7 @@ pytest tests/test_simple.py -v
 # 🧹 Linting
 flake8 rubot/
 
-# 🔍 Typ-Überprüfung  
+# 🔍 Typ-Überprüfung
 mypy rubot/
 
 # ✨ Formatierung
@@ -515,6 +534,6 @@ Dieses Projekt verwendet [Docling](https://github.com/docling-project/docling) f
 
 **Gemacht mit ❤️ für die Münchner Community**
 
-*Wenn Sie rubot nützlich finden, erwägen Sie bitte, ihm einen ⭐ auf GitHub zu geben!*
+_Wenn Sie rubot nützlich finden, erwägen Sie bitte, ihm einen ⭐ auf GitHub zu geben!_
 
 </div>

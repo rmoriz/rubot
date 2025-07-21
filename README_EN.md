@@ -17,6 +17,18 @@
 
 ---
 
+## 📱 Follow @lisa_radieschen on Mastodon
+
+<div align="center">
+
+![Lisa Radieschen](docs/lisa_radieschen.jpeg)
+
+**Follow [@lisa_radieschen@social.entrypoint.sh](https://social.entrypoint.sh/@lisa_radieschen) on Mastodon/Fediverse to see the daily results of this workflow at 1 PM**
+
+</div>
+
+---
+
 ## ✨ What is rubot?
 
 `rubot` is a powerful CLI tool that transforms Munich's Rathaus-Umschau PDFs into structured, AI-analyzed data. Perfect for journalists, researchers, and citizens who want to stay informed about municipal decisions and events.
