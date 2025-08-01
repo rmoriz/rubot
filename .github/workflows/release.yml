@@ -47,6 +47,7 @@ jobs:
     permissions:
       contents: read
       packages: write
+      actions: read
 
     steps:
       - name: Checkout
@@ -87,3 +88,80 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           timeout-minutes: 30
+
+      - name: Clean up old untagged images
+        if: success()
+        run: |
+          # Get the package name (repository name in lowercase)
+          PACKAGE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+          
+          echo "🧹 Cleaning up old untagged images for package: $PACKAGE_NAME"
+          echo "📦 Repository: $REPO_NAME, Owner: ${{ github.repository_owner }}"
+          
+          # Try organization endpoint first, then user endpoint as fallback
+          echo "🔍 Fetching package versions..."
+          API_RESPONSE=$(curl -s \
+            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/orgs/${{ github.repository_owner }}/packages/container/$REPO_NAME/versions" 2>/dev/null)
+          
+          # If org endpoint fails, try user endpoint
+          if [ -z "$API_RESPONSE" ] || echo "$API_RESPONSE" | grep -q "Not Found"; then
+            echo "🔄 Trying user endpoint..."
+            API_RESPONSE=$(curl -s \
+              -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              "https://api.github.com/user/packages/container/$REPO_NAME/versions")
+          fi
+          
+          echo "📋 API Response type: $(echo "$API_RESPONSE" | jq -r 'type' 2>/dev/null || echo "invalid JSON")"
+          
+          # Get untagged versions with better error handling
+          if echo "$API_RESPONSE" | jq -e 'type == "array"' >/dev/null 2>&1; then
+            VERSIONS=$(echo "$API_RESPONSE" | jq -r '
+              .[] | 
+              select(
+                has("metadata") and 
+                .metadata | has("container") and 
+                .metadata.container | has("tags") and 
+                (.metadata.container.tags | length == 0)
+              ) | 
+              .id' 2>/dev/null)
+          else
+            echo "❌ Invalid API response format"
+            VERSIONS=""
+          fi
+          
+          # Delete untagged versions (keep last 5 for safety)
+          if [ -n "$VERSIONS" ]; then
+            echo "Found untagged versions to clean up:"
+            echo "$VERSIONS" | tail -n +6 | while read -r VERSION_ID; do
+              if [ -n "$VERSION_ID" ]; then
+                echo "🗑️  Deleting untagged version: $VERSION_ID"
+                # Try org endpoint first, then user endpoint
+                RESPONSE=$(curl -s -w "%{http_code}" -o /dev/null -X DELETE \
+                  -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+                  -H "Accept: application/vnd.github.v3+json" \
+                  "https://api.github.com/orgs/${{ github.repository_owner }}/packages/container/$REPO_NAME/versions/$VERSION_ID" 2>/dev/null)
+                
+                if [ "$RESPONSE" != "204" ]; then
+                  echo "🔄 Trying user endpoint for deletion..."
+                  RESPONSE=$(curl -s -w "%{http_code}" -o /dev/null -X DELETE \
+                    -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
+                    -H "Accept: application/vnd.github.v3+json" \
+                    "https://api.github.com/user/packages/container/$REPO_NAME/versions/$VERSION_ID")
+                fi
+                
+                if [ "$RESPONSE" = "204" ]; then
+                  echo "✅ Successfully deleted version $VERSION_ID"
+                else
+                  echo "❌ Failed to delete version $VERSION_ID (HTTP $RESPONSE)"
+                fi
+                sleep 1
+              fi
+            done
+            echo "✅ Cleanup completed"
+          else
+            echo "ℹ️  No untagged versions found to clean up"
+          fi
