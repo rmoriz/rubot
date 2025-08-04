@@ -6,10 +6,15 @@ import pytest
 import requests
 import json
 import os
-from unittest.mock import patch, mock_open, MagicMock
-from pathlib import Path
+import time
+from unittest.mock import patch, mock_open, MagicMock, call
 
-from rubot.llm import load_prompt, process_with_openrouter
+from rubot.llm import (
+    load_prompt, 
+    process_with_openrouter, 
+    process_with_openrouter_backoff,
+    is_valid_openrouter_response
+)
 
 
 class TestLLM:
@@ -102,3 +107,121 @@ class TestLLM:
         # Verify default model was used
         call_args = mock_post.call_args
         assert call_args[1]["json"]["model"] == "custom-model"
+        
+    def test_is_valid_openrouter_response(self):
+        """Test the is_valid_openrouter_response function"""
+        # Valid response
+        valid_response = {
+            "choices": [
+                {"message": {"content": "This is a valid response"}}
+            ]
+        }
+        assert is_valid_openrouter_response(valid_response) is True
+        
+        # Invalid responses
+        invalid_responses = [
+            {},  # Empty response
+            {"choices": []},  # Empty choices
+            {"choices": [{"message": {}}]},  # No content
+            {"choices": [{"message": {"content": ""}}]},  # Empty content
+            {"choices": [{"message": {"content": "   "}}]},  # Whitespace content
+        ]
+        
+        for response in invalid_responses:
+            assert is_valid_openrouter_response(response) is False
+            
+    @patch("rubot.llm.process_with_openrouter")
+    @patch("time.sleep")
+    def test_process_with_openrouter_backoff_success_first_try(self, mock_sleep, mock_process):
+        """Test backoff when first try succeeds"""
+        # Mock successful response
+        mock_process.return_value = json.dumps({
+            "choices": [{"message": {"content": "Valid response"}}]
+        })
+        
+        result = process_with_openrouter_backoff("Test content", None, "test-model")
+        
+        # Should succeed on first try
+        mock_process.assert_called_once()
+        mock_sleep.assert_not_called()
+        
+        # Result should be valid
+        parsed = json.loads(result)
+        assert parsed["choices"][0]["message"]["content"] == "Valid response"
+        
+    @patch("rubot.llm.process_with_openrouter")
+    @patch("time.sleep")
+    def test_process_with_openrouter_backoff_empty_response_then_success(self, mock_sleep, mock_process):
+        """Test backoff when first response is empty, second succeeds"""
+        # First response is empty, second is valid
+        mock_process.side_effect = [
+            json.dumps({"choices": [{"message": {"content": ""}}]}),  # Empty content
+            json.dumps({"choices": [{"message": {"content": "Valid response"}}]})
+        ]
+        
+        result = process_with_openrouter_backoff("Test content", None, "test-model")
+        
+        # Should be called twice
+        assert mock_process.call_count == 2
+        mock_sleep.assert_called_once_with(60)  # Should sleep for 1 minute
+        
+        # Result should be valid
+        parsed = json.loads(result)
+        assert parsed["choices"][0]["message"]["content"] == "Valid response"
+        
+    @patch("rubot.llm.process_with_openrouter")
+    @patch("time.sleep")
+    def test_process_with_openrouter_backoff_all_attempts_fail(self, mock_sleep, mock_process):
+        """Test backoff when all attempts fail with empty responses"""
+        # All responses are empty
+        mock_process.return_value = json.dumps({"choices": [{"message": {"content": ""}}]})
+        
+        with pytest.raises(ValueError, match="Empty or invalid content in OpenRouter response"):
+            process_with_openrouter_backoff("Test content", None, "test-model")
+        
+        # Should be called 6 times (initial + 5 retries)
+        assert mock_process.call_count == 6
+        assert mock_sleep.call_count == 5
+        
+        # Verify exponential backoff sleep times
+        mock_sleep.assert_has_calls([
+            call(60),    # 1 minute
+            call(120),   # 2 minutes
+            call(240),   # 4 minutes
+            call(480),   # 8 minutes
+            call(960),   # 16 minutes
+        ])
+        
+    @patch("rubot.llm.process_with_openrouter")
+    @patch("time.sleep")
+    def test_process_with_openrouter_backoff_exception_then_success(self, mock_sleep, mock_process):
+        """Test backoff when first attempt throws exception, second succeeds"""
+        # First call raises exception, second succeeds
+        mock_process.side_effect = [
+            requests.RequestException("API Error"),
+            json.dumps({"choices": [{"message": {"content": "Valid response"}}]})
+        ]
+        
+        result = process_with_openrouter_backoff("Test content", None, "test-model")
+        
+        # Should be called twice
+        assert mock_process.call_count == 2
+        mock_sleep.assert_called_once_with(60)  # Should sleep for 1 minute
+        
+        # Result should be valid
+        parsed = json.loads(result)
+        assert parsed["choices"][0]["message"]["content"] == "Valid response"
+        
+    @patch("rubot.llm.process_with_openrouter")
+    @patch("time.sleep")
+    def test_process_with_openrouter_backoff_all_exceptions(self, mock_sleep, mock_process):
+        """Test backoff when all attempts throw exceptions"""
+        # All calls raise exceptions
+        mock_process.side_effect = requests.RequestException("API Error")
+        
+        with pytest.raises(requests.RequestException):
+            process_with_openrouter_backoff("Test content", None, "test-model")
+        
+        # Should be called 6 times (initial + 5 retries)
+        assert mock_process.call_count == 6
+        assert mock_sleep.call_count == 5

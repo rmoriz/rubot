@@ -6,8 +6,15 @@ import pytest
 import tempfile
 import os
 import requests
-from unittest.mock import patch, MagicMock
-from rubot.downloader import download_pdf, generate_pdf_url, validate_date_format, validate_pdf_url
+import time
+from unittest.mock import patch, MagicMock, call
+from rubot.downloader import (
+    download_pdf, 
+    download_pdf_with_backoff, 
+    generate_pdf_url, 
+    validate_date_format, 
+    validate_pdf_url
+)
 
 
 class TestDownloader:
@@ -77,3 +84,61 @@ class TestDownloader:
 
         with pytest.raises(Exception):
             download_pdf("2024-01-15")
+
+    @patch("rubot.downloader.download_pdf")
+    @patch("time.sleep")
+    def test_download_pdf_with_backoff_success_first_try(self, mock_sleep, mock_download):
+        """Test backoff when file is found on first try"""
+        mock_download.return_value = "/tmp/test.pdf"
+        
+        result = download_pdf_with_backoff("2024-01-15")
+        
+        assert result == "/tmp/test.pdf"
+        mock_download.assert_called_once_with("2024-01-15", 30)
+        mock_sleep.assert_not_called()
+
+    @patch("rubot.downloader.download_pdf")
+    @patch("time.sleep")
+    def test_download_pdf_with_backoff_success_second_try(self, mock_sleep, mock_download):
+        """Test backoff when file is found on second try"""
+        mock_download.side_effect = [
+            FileNotFoundError("PDF not found"),
+            "/tmp/test.pdf"
+        ]
+        
+        result = download_pdf_with_backoff("2024-01-15")
+        
+        assert result == "/tmp/test.pdf"
+        assert mock_download.call_count == 2
+        mock_sleep.assert_called_once_with(10 * 60)  # 10 minutes
+
+    @patch("rubot.downloader.download_pdf")
+    @patch("time.sleep")
+    def test_download_pdf_with_backoff_all_attempts_fail(self, mock_sleep, mock_download):
+        """Test backoff when all attempts fail"""
+        mock_download.side_effect = FileNotFoundError("PDF not found")
+        
+        result = download_pdf_with_backoff("2024-01-15")
+        
+        assert result is None
+        assert mock_download.call_count == 5  # Initial + 4 retries
+        assert mock_sleep.call_count == 4
+        # Verify exponential backoff sleep times
+        mock_sleep.assert_has_calls([
+            call(10 * 60),  # 10 minutes
+            call(20 * 60),  # 20 minutes
+            call(40 * 60),  # 40 minutes
+            call(80 * 60),  # 80 minutes
+        ])
+
+    @patch("rubot.downloader.download_pdf")
+    @patch("time.sleep")
+    def test_download_pdf_with_backoff_request_exception(self, mock_sleep, mock_download):
+        """Test backoff when request exception occurs"""
+        mock_download.side_effect = requests.RequestException("Connection error")
+        
+        result = download_pdf_with_backoff("2024-01-15")
+        
+        assert result is None
+        mock_download.assert_called_once_with("2024-01-15", 30)
+        mock_sleep.assert_not_called()

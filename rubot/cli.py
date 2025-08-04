@@ -9,8 +9,8 @@ import tempfile
 import time
 from typing import Optional, Any
 
-from .downloader import download_pdf, generate_pdf_url
-from .llm import process_with_openrouter
+from .downloader import download_pdf, download_pdf_with_backoff, generate_pdf_url
+from .llm import process_with_openrouter, process_with_openrouter_backoff
 from .utils import validate_date
 from .config import RubotConfig
 from .models import RathausUmschauAnalysis
@@ -252,7 +252,13 @@ def _download_pdf_with_cache(
             return pdf_path
 
     logger.info("PDF Cache MISS: Downloading...")
-    downloaded_path: str = download_pdf(date, app_config.request_timeout)
+    try:
+        downloaded_path: Optional[str] = download_pdf_with_backoff(date, app_config.request_timeout)
+        if downloaded_path is None:
+            raise FileNotFoundError(f"PDF for date {date} not available after multiple retries")
+    except FileNotFoundError as e:
+        logger.error(f"PDF not found: {e}")
+        raise
 
     if cache:
         # Move to cache with original filename
@@ -365,7 +371,7 @@ def _process_with_llm(
 ) -> str:
     """Process content with LLM."""
     logger.info(f"Processing with LLM ({model})...")
-    result = process_with_openrouter(
+    result = process_with_openrouter_backoff(
         markdown_content,
         prompt,
         model,

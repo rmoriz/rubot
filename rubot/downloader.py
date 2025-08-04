@@ -7,7 +7,9 @@ import tempfile
 import re
 import os
 import logging
+import time
 from pathlib import Path
+from typing import Optional, cast
 from .retry import retry_on_failure
 
 
@@ -123,3 +125,53 @@ def download_pdf(date: str, timeout: int = 30) -> str:
         raise requests.RequestException(f"Failed to download PDF from {url}: {e}")
     except OSError as e:
         raise OSError(f"Failed to write PDF file: {e}")
+
+
+def download_pdf_with_backoff(date: str, timeout: int = 30) -> Optional[str]:
+    """
+    Download PDF with exponential backoff retry mechanism.
+    
+    When PDF is not available, retries with exponential backoff:
+    1. Wait 10 minutes and retry
+    2. Wait 20 minutes and retry
+    3. Wait 40 minutes and retry
+    4. Wait 80 minutes and retry
+    
+    Args:
+        date: Date string in YYYY-MM-DD format
+        timeout: Request timeout in seconds
+        
+    Returns:
+        Path to downloaded PDF file or None if all attempts failed
+    """
+    logger = logging.getLogger(__name__)
+    backoff_times = [10 * 60, 20 * 60, 40 * 60, 80 * 60]  # Times in seconds
+    
+    # First attempt
+    try:
+        result = download_pdf(date, timeout)
+        return cast(str, result)
+    except FileNotFoundError as e:
+        logger.info(f"PDF not available on first attempt: {e}")
+    except (requests.RequestException, OSError) as e:
+        logger.error(f"Error downloading PDF: {e}")
+        return None
+    
+    # Retry attempts with exponential backoff
+    for i, wait_time in enumerate(backoff_times):
+        logger.info(f"Waiting {wait_time/60:.0f} minutes before retry #{i+1}...")
+        time.sleep(wait_time)
+        
+        try:
+            result = download_pdf(date, timeout)
+            return cast(str, result)
+        except FileNotFoundError as e:
+            logger.info(f"PDF still not available on retry #{i+1}: {e}")
+            if i == len(backoff_times) - 1:
+                logger.error("Maximum retries reached, PDF not available")
+                return None
+        except (requests.RequestException, OSError) as e:
+            logger.error(f"Error downloading PDF on retry #{i+1}: {e}")
+            return None
+    
+    return None
