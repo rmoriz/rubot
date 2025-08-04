@@ -49,7 +49,8 @@ class TestLLM:
                 load_prompt(None)
 
     @patch("rubot.llm.requests.post")
-    def test_process_with_openrouter_success(self, mock_post, temp_env):
+    @patch("time.sleep")  # Mock time.sleep to avoid waiting
+    def test_process_with_openrouter_success(self, mock_sleep, mock_post, temp_env):
         """Test successful OpenRouter API call"""
         # Mock successful response
         mock_response = MagicMock()
@@ -82,7 +83,8 @@ class TestLLM:
             process_with_openrouter("Test content", None, None)
 
     @patch("rubot.llm.requests.post")
-    def test_process_with_openrouter_api_error(self, mock_post, temp_env):
+    @patch("time.sleep")  # Mock time.sleep to avoid waiting
+    def test_process_with_openrouter_api_error(self, mock_sleep, mock_post, temp_env):
         """Test OpenRouter API call with error"""
         mock_post.side_effect = requests.exceptions.RequestException("API Error")
 
@@ -90,9 +92,13 @@ class TestLLM:
             requests.RequestException, match="OpenRouter API request failed"
         ):
             process_with_openrouter("Test content", None, "test-model")
+        
+        # Verify that time.sleep was called (due to the retry mechanism)
+        mock_sleep.assert_called()
 
     @patch("rubot.llm.requests.post")
-    def test_process_with_openrouter_default_model(self, mock_post, temp_env):
+    @patch("time.sleep")  # Mock time.sleep to avoid waiting
+    def test_process_with_openrouter_default_model(self, mock_sleep, mock_post, temp_env):
         """Test OpenRouter API call with default model from environment"""
         # Set a custom model in the environment
         temp_env["DEFAULT_MODEL"] = "custom-model"

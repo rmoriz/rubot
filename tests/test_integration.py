@@ -26,9 +26,9 @@ class TestIntegration:
             tmp_path = tmp_file.name
 
         try:
-            with patch("rubot.cli.download_pdf", return_value=tmp_path), \
+            with patch("rubot.cli.download_pdf_with_backoff", return_value=tmp_path), \
                  patch("rubot.cli._convert_to_markdown", return_value="# Test PDF Content\n\nDocling converted content"), \
-                 patch("rubot.cli.process_with_openrouter", return_value='{"result": "success"}') as mock_llm:
+                 patch("rubot.cli.process_with_openrouter_backoff", return_value='{"result": "success"}') as mock_llm_backoff:
 
                 with patch("rubot.cli.RubotConfig.from_env", return_value=temp_config), \
                      patch.dict("os.environ", {"DEFAULT_SYSTEM_PROMPT": "test prompt"}):
@@ -40,7 +40,7 @@ class TestIntegration:
                 assert result.exit_code == 0
                 # Note: Converter may not be called due to caching or other optimizations
                 # The important thing is that the CLI runs successfully
-                mock_llm.assert_called_once()
+                mock_llm_backoff.assert_called_once()
 
         finally:
             if os.path.exists(tmp_path):
@@ -58,9 +58,9 @@ class TestIntegration:
             prompt_path = prompt_file.name
 
         try:
-            with patch("rubot.cli.download_pdf", return_value=tmp_path), \
+            with patch("rubot.cli.download_pdf_with_backoff", return_value=tmp_path), \
                  patch("rubot.cli._convert_to_markdown", return_value="# Custom PDF Content\n\nCustom docling output"), \
-                 patch("rubot.cli.process_with_openrouter", return_value='{"result": "custom"}') as mock_llm:
+                 patch("rubot.cli.process_with_openrouter_backoff", return_value='{"result": "custom"}') as mock_llm_backoff:
 
                 with patch("rubot.cli.RubotConfig.from_env", return_value=temp_config), \
                      patch.dict("os.environ", {"DEFAULT_SYSTEM_PROMPT": "test prompt"}):
@@ -79,7 +79,7 @@ class TestIntegration:
                 assert result.exit_code == 0
                 # Note: Converter may not be called due to caching or other optimizations
                 # The important thing is that the CLI runs successfully
-                mock_llm.assert_called_once()
+                mock_llm_backoff.assert_called_once()
 
         finally:
             if os.path.exists(tmp_path):
@@ -94,7 +94,7 @@ class TestIntegration:
 
     def test_workflow_download_error_handling(self, cli_runner, temp_config):
         """Test workflow error handling for download failures"""
-        with patch("rubot.cli.download_pdf", side_effect=FileNotFoundError("PDF not found for date 2024-01-15")):
+        with patch("rubot.cli.download_pdf_with_backoff", side_effect=FileNotFoundError("PDF not found for date 2024-01-15")):
             with patch("rubot.cli.RubotConfig.from_env", return_value=temp_config):
                 result = cli_runner.invoke(main, ["--date", "2024-01-15"])
 

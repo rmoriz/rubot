@@ -3,10 +3,63 @@ Pytest configuration and fixtures
 """
 
 import os
+import sys
 import pytest
 from pathlib import Path
 import tempfile
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
+
+# Create a clean mock for docling functionality
+class MockDocling:
+    """Simple mock for docling with minimum functionality needed for tests"""
+    class DocumentConverter:
+        def __init__(self, *args, **kwargs):
+            pass
+        
+        def convert(self, *args, **kwargs):
+            result = MagicMock()
+            result.status = "SUCCESS"
+            result.document = MagicMock()
+            result.document.export_to_markdown.return_value = "# Mock Markdown"
+            return result
+    
+    class ConversionStatus:
+        SUCCESS = "SUCCESS"
+    
+    class DoclingConfig:
+        def __init__(self, **kwargs):
+            for k, v in kwargs.items():
+                setattr(self, k, v)
+    
+    class ImageRefMode:
+        PLACEHOLDER = "placeholder"
+        EMBEDDED = "embedded"
+        REFERENCED = "referenced"
+
+# Create a mock for docling_core
+class MockDoclingCore:
+    class types:
+        class doc:
+            class base:
+                class ImageRefMode:
+                    PLACEHOLDER = "placeholder"
+                    EMBEDDED = "embedded"
+                    REFERENCED = "referenced"
+
+# Set up mock modules
+mock_docling = MockDocling()
+mock_docling_core = MockDoclingCore()
+
+sys.modules['docling'] = mock_docling
+sys.modules['docling.document_converter'] = MagicMock()
+sys.modules['docling.document_converter'].DocumentConverter = mock_docling.DocumentConverter
+sys.modules['docling.datamodel'] = MagicMock()
+sys.modules['docling.datamodel.base_models'] = MagicMock()
+sys.modules['docling.datamodel.base_models'].ConversionStatus = mock_docling.ConversionStatus
+sys.modules['docling_core'] = mock_docling_core
+sys.modules['docling_core.types'] = mock_docling_core.types
+sys.modules['docling_core.types.doc'] = mock_docling_core.types.doc
+sys.modules['docling_core.types.doc.base'] = mock_docling_core.types.doc.base
 
 from rubot.config import RubotConfig
 
@@ -68,6 +121,15 @@ def temp_config(temp_env):
         max_pdf_pages=10,
         output_format="json",
         json_indent=2,
+        # Docling configuration
+        docling_ocr_engine="easyocr",
+        docling_do_ocr=True,
+        docling_do_table_structure=False,
+        docling_image_mode="placeholder",
+        docling_image_placeholder="<!-- image -->",
+        docling_use_cpu_only=True,
+        docling_batch_size=1,
+        docling_max_image_size=1024,
     )
 
 

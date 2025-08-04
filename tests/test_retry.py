@@ -4,7 +4,7 @@ Tests for retry module
 
 import pytest
 import time
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call
 import requests
 
 from rubot.retry import retry_on_failure, exponential_backoff
@@ -110,3 +110,96 @@ class TestRetry:
 
         result = exponential_backoff(2, 0.5)
         assert result == 2.0  # 0.5 * 2^2 = 2.0
+        
+    @patch("time.sleep")  # Patch sleep to avoid actual waiting
+    def test_retry_with_multiple_exception_types(self, mock_sleep):
+        """Test retry with multiple exception types"""
+        call_count = 0
+        
+        @retry_on_failure(max_retries=3, delay=0.01, exceptions=(ValueError, TypeError, requests.RequestException))
+        def test_function():
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise ValueError("First error")
+            elif call_count == 2:
+                raise TypeError("Second error")
+            elif call_count == 3:
+                raise requests.RequestException("Third error")
+            elif call_count == 4:
+                return "success"
+            raise Exception("Should not reach here")
+        
+        # The function will make 4 attempts (original + 3 retries)
+        # and will succeed on the 4th attempt
+        result = test_function()
+        assert result == "success"
+        assert call_count == 4
+        assert mock_sleep.call_count == 3
+    
+    @patch("time.sleep")
+    @patch("sys.stderr")
+    def test_retry_error_output(self, mock_stderr, mock_sleep):
+        """Test that retry prints appropriate error messages"""
+        call_count = 0
+        
+        @retry_on_failure(max_retries=2, delay=0.1)
+        def test_function():
+            nonlocal call_count
+            call_count += 1
+            raise requests.RequestException("Test error")
+        
+        with pytest.raises(requests.RequestException):
+            test_function()
+        
+        # Check that print to stderr was called for each retry
+        assert mock_stderr.write.call_count >= 2
+        
+    def test_retry_with_function_arguments(self):
+        """Test retry with function that takes arguments"""
+        call_count = 0
+        
+        @retry_on_failure(max_retries=2, delay=0.01)
+        def test_function(a, b, c=None):
+            nonlocal call_count
+            call_count += 1
+            if call_count < 2:
+                raise requests.RequestException("Temporary error")
+            return a + b + (c or 0)
+        
+        result = test_function(1, 2, c=3)
+        assert result == 6
+        assert call_count == 2
+    
+    def test_retry_with_zero_retries(self):
+        """Test retry behavior with zero retries"""
+        call_count = 0
+        
+        @retry_on_failure(max_retries=0)
+        def test_function():
+            nonlocal call_count
+            call_count += 1
+            raise requests.RequestException("Error")
+        
+        with pytest.raises(requests.RequestException):
+            test_function()
+        
+        assert call_count == 1  # Should only try once
+    
+    @patch("time.sleep")
+    def test_retry_with_custom_backoff_factor(self, mock_sleep):
+        """Test retry with custom backoff factor"""
+        call_count = 0
+        
+        @retry_on_failure(max_retries=3, delay=1.0, backoff=3.0)  # Use higher backoff
+        def test_function():
+            nonlocal call_count
+            call_count += 1
+            raise requests.RequestException("Error")
+        
+        with pytest.raises(requests.RequestException):
+            test_function()
+        
+        # Check delays follow the 3x pattern
+        expected_calls = [call(1.0), call(3.0), call(9.0)]  # 1, 1*3, 1*3*3
+        mock_sleep.assert_has_calls(expected_calls)

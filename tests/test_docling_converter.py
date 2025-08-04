@@ -173,5 +173,7 @@ class TestDoclingPDFConverter:
         config = DoclingConfig()
         converter = DoclingPDFConverter(config)
         
-        with pytest.raises(RuntimeError, match="PDF conversion failed"):
-            converter.convert_to_markdown("/nonexistent/file.pdf")
+        # Mock the DocumentConverter.convert method to raise an exception
+        with patch.object(converter._converter, 'convert', side_effect=FileNotFoundError("File not found")):
+            with pytest.raises(RuntimeError, match="PDF conversion failed"):
+                converter.convert_to_markdown("/nonexistent/file.pdf")

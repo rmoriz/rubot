@@ -19,12 +19,12 @@ def cli_runner():
 
 
 class TestCLI:
-
-    @patch("rubot.cli.process_with_openrouter")
+    
+    @patch("rubot.cli.process_with_openrouter_backoff")
     @patch("rubot.cli._convert_to_markdown")
-    @patch("rubot.cli.download_pdf")
+    @patch("rubot.cli.download_pdf_with_backoff")
     def test_cli_basic_usage(
-        self, mock_download, mock_convert_markdown, mock_llm, cli_runner, temp_config
+        self, mock_download_backoff, mock_convert_markdown, mock_llm_backoff, cli_runner, temp_config
     ):
         """Test basic CLI usage with Docling"""
         # Setup mocks
@@ -32,48 +32,48 @@ class TestCLI:
             tmp_file.write(b"mock pdf content")
             tmp_path = tmp_file.name
 
-        mock_download.return_value = tmp_path
+        mock_download_backoff.return_value = tmp_path
         mock_convert_markdown.return_value = "# Test Markdown\n\nDocling test content"
-        mock_llm.return_value = '{"result": "test"}'
+        mock_llm_backoff.return_value = '{"result": "test"}'
 
         try:
             with patch("rubot.cli.RubotConfig.from_env", return_value=temp_config), \
                  patch.dict("os.environ", {"DEFAULT_SYSTEM_PROMPT": "test prompt"}):
                 result = cli_runner.invoke(main, ["--date", "2024-01-15"])
-
-            assert result.exit_code == 0
-            mock_download.assert_called_once()
-            mock_convert_markdown.assert_called_once()
-            mock_llm.assert_called_once()
-            # The important thing is that the CLI runs successfully
-            mock_llm.assert_called_once()
+                
+                assert result.exit_code == 0
+                mock_download_backoff.assert_called_once()
+                mock_convert_markdown.assert_called_once()
+                mock_llm_backoff.assert_called_once()
+                # The important thing is that the CLI runs successfully
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
-    @patch("rubot.cli.process_with_openrouter")
+    @patch("rubot.cli.process_with_openrouter_backoff")
     @patch("rubot.cli._convert_to_markdown")
-    @patch("rubot.cli.download_pdf")
+    @patch("rubot.cli.download_pdf_with_backoff")
     def test_cli_with_output_file(
-        self, mock_download, mock_convert_markdown, mock_llm, cli_runner, temp_env
+        self, mock_download_backoff, mock_convert_markdown, mock_llm_backoff, cli_runner, temp_env
     ):
         """Test CLI with output file using Docling"""
         with tempfile.NamedTemporaryFile(suffix='.pdf', delete=False) as tmp_file:
             tmp_file.write(b"mock pdf content")
             tmp_path = tmp_file.name
 
-        mock_download.return_value = tmp_path
+        mock_download_backoff.return_value = tmp_path
         mock_convert_markdown.return_value = "# Test Output\n\nDocling output content"
-        mock_llm.return_value = '{"result": "test"}'
+        mock_llm_backoff.return_value = '{"choices":[{"message":{"content":"{\\"result\\":\\"test\\"}"}}]}'
 
         try:
             with cli_runner.isolated_filesystem():
-                result = cli_runner.invoke(
-                    main, ["--date", "2024-01-15", "--output", "result.json"]
-                )
-                assert result.exit_code == 0
-                # Check that output was created
-                assert os.path.exists("result.json")
+                with patch.dict("os.environ", temp_env):
+                    result = cli_runner.invoke(
+                        main, ["--date", "2024-01-15", "--output", "result.json"]
+                    )
+                    assert result.exit_code == 0
+                    # Check that output was created
+                    assert os.path.exists("result.json")
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
@@ -83,10 +83,10 @@ class TestCLI:
         result = cli_runner.invoke(main, ["--date", "invalid-date"])
         assert result.exit_code == 1
 
-    @patch("rubot.cli.download_pdf")
-    def test_cli_download_error(self, mock_download, cli_runner, temp_config):
+    @patch("rubot.cli.download_pdf_with_backoff")
+    def test_cli_download_error(self, mock_download_backoff, cli_runner, temp_config):
         """Test CLI with download error"""
-        mock_download.side_effect = FileNotFoundError("PDF not found")
+        mock_download_backoff.side_effect = FileNotFoundError("PDF not found")
         
         with patch("rubot.cli.RubotConfig.from_env", return_value=temp_config):
             result = cli_runner.invoke(main, ["--date", "2024-01-15"])
@@ -119,15 +119,15 @@ class TestCLI:
     def test_cli_with_system_prompt_env_var(self, cli_runner, temp_config):
         """Test CLI works correctly when using DEFAULT_SYSTEM_PROMPT instead of prompt file"""
         with patch("rubot.cli.RubotConfig.from_env", return_value=temp_config), \
-             patch("rubot.cli.download_pdf") as mock_download, \
+             patch("rubot.cli.download_pdf_with_backoff") as mock_download_backoff, \
              patch("rubot.cli._convert_to_markdown") as mock_convert, \
-             patch("rubot.cli.process_with_openrouter") as mock_llm, \
+             patch("rubot.cli.process_with_openrouter_backoff") as mock_llm_backoff, \
              patch.dict("os.environ", {"DEFAULT_SYSTEM_PROMPT": "Test system prompt"}):
             
             # Setup mocks to avoid actual processing
-            mock_download.return_value = "/tmp/test.pdf"
+            mock_download_backoff.return_value = "/tmp/test.pdf"
             mock_convert.return_value = "# Test content"
-            mock_llm.return_value = '{"result": "success"}'
+            mock_llm_backoff.return_value = '{"result": "success"}'
             
             result = cli_runner.invoke(main, ["--date", "2024-01-15"])
 
