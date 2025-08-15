@@ -116,7 +116,7 @@ class TestDownloader:
 
         assert result == "/tmp/test.pdf"
         assert mock_download.call_count == 2
-        mock_sleep.assert_called_once_with(10 * 60)  # 10 minutes
+        mock_sleep.assert_called_once_with(5 * 60)  # 5 minutes
 
     @patch("rubot.downloader.download_pdf")
     @patch("time.sleep")
@@ -129,11 +129,12 @@ class TestDownloader:
         result = download_pdf_with_backoff("2024-01-15")
 
         assert result is None
-        assert mock_download.call_count == 5  # Initial + 4 retries
-        assert mock_sleep.call_count == 4
+        assert mock_download.call_count == 6  # Initial + 5 retries
+        assert mock_sleep.call_count == 5
         # Verify exponential backoff sleep times
         mock_sleep.assert_has_calls(
             [
+                call(5 * 60),   # 5 minutes
                 call(10 * 60),  # 10 minutes
                 call(20 * 60),  # 20 minutes
                 call(40 * 60),  # 40 minutes

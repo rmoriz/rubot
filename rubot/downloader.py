@@ -48,7 +48,7 @@ def generate_pdf_url(date: str) -> str:
 
 
 @retry_on_failure(
-    max_retries=3, delay=1.0, exceptions=(requests.RequestException,)
+    max_retries=4, delay=300.0, exceptions=(requests.RequestException,)
 )
 def download_pdf(date: str, timeout: int = 30) -> str:
     """
@@ -139,10 +139,11 @@ def download_pdf_with_backoff(date: str, timeout: int = 30) -> Optional[str]:
     Download PDF with exponential backoff retry mechanism.
 
     When PDF is not available, retries with exponential backoff:
-    1. Wait 10 minutes and retry
-    2. Wait 20 minutes and retry
-    3. Wait 40 minutes and retry
-    4. Wait 80 minutes and retry
+    1. Wait 5 minutes and retry
+    2. Wait 10 minutes and retry
+    3. Wait 20 minutes and retry
+    4. Wait 40 minutes and retry
+    5. Wait 80 minutes and retry
 
     Args:
         date: Date string in YYYY-MM-DD format
@@ -152,7 +153,7 @@ def download_pdf_with_backoff(date: str, timeout: int = 30) -> Optional[str]:
         Path to downloaded PDF file or None if all attempts failed
     """
     logger = logging.getLogger(__name__)
-    backoff_times = [10 * 60, 20 * 60, 40 * 60, 80 * 60]  # Times in seconds
+    backoff_times = [5 * 60, 10 * 60, 20 * 60, 40 * 60, 80 * 60]  # Times in seconds
 
     # First attempt
     try:
