@@ -10,16 +10,19 @@ from dataclasses import dataclass
 try:
     from docling.document_converter import DocumentConverter
     from docling.datamodel.base_models import ConversionStatus
+    _DOCLING_AVAILABLE = True
 except ImportError:
+    _DOCLING_AVAILABLE = False
+    
     # Mock classes for testing
-    class DocumentConverter:
+    class _MockDocumentConverter:
         def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
 
         def convert(self, *args: Any, **kwargs: Any) -> Any:
             class MockResult:
                 def __init__(self) -> None:
-                    self.status = ConversionStatus.SUCCESS
+                    self.status = _MockConversionStatus.SUCCESS
                     self.document = self
 
                 def export_to_markdown(self, **kwargs: Any) -> str:
@@ -27,8 +30,25 @@ except ImportError:
 
             return MockResult()
 
-    class ConversionStatus:
+    class _MockConversionStatus:
         SUCCESS = "SUCCESS"
+    
+    # Type ignore for mock assignments
+    DocumentConverter = _MockDocumentConverter  # type: ignore[assignment,misc]
+    ConversionStatus = _MockConversionStatus  # type: ignore[assignment,misc]
+
+try:
+    from docling_core.types.doc.base import ImageRefMode
+    _DOCLING_CORE_AVAILABLE = True
+except ImportError:
+    _DOCLING_CORE_AVAILABLE = False
+    
+    class _MockImageRefMode:
+        PLACEHOLDER = "placeholder"
+        EMBEDDED = "embedded"
+        REFERENCED = "referenced"
+    
+    ImageRefMode = _MockImageRefMode  # type: ignore[assignment,misc]
 
 
 @dataclass
@@ -63,7 +83,7 @@ class DoclingPDFConverter:
         )
         self._converter = self._create_converter()
 
-    def _create_converter(self) -> DocumentConverter:
+    def _create_converter(self) -> Any:
         """Create and configure DocumentConverter"""
         # Configure for memory optimization
 
@@ -90,15 +110,8 @@ class DoclingPDFConverter:
                 )
 
             # Configure image handling
-            try:
-                from docling_core.types.doc.base import ImageRefMode
-            except ImportError:
-                # Mock for testing
-                class ImageRefMode:
-                    PLACEHOLDER = "placeholder"
-                    EMBEDDED = "embedded"
-                    REFERENCED = "referenced"
-
+            # ImageRefMode is already imported at module level
+            
             # Map string config to enum
             image_mode_map = {
                 "placeholder": ImageRefMode.PLACEHOLDER,
