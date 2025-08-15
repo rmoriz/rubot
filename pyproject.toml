@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rubot"
-version = "0.2.1"
+version = "0.2.2"
 description = "CLI tool for downloading and processing Rathaus-Umschau PDFs"
 readme = "README.md"
 license = {text = "AGPL-3.0"}
