@@ -47,7 +47,7 @@ class RubotConfig:
     docling_model_cache_dir: Optional[str] = None
     docling_image_mode: str = "placeholder"
     docling_image_placeholder: str = "<!-- image -->"
-    
+
     # Memory optimization settings
     docling_use_cpu_only: bool = False
     docling_batch_size: int = 1
@@ -75,7 +75,9 @@ class RubotConfig:
         # Required configuration
         api_key = os.getenv("OPENROUTER_API_KEY")
         if not api_key:
-            raise ValueError("OPENROUTER_API_KEY environment variable is required")
+            raise ValueError(
+                "OPENROUTER_API_KEY environment variable is required"
+            )
 
         model = os.getenv("DEFAULT_MODEL")
         if not model:
@@ -99,7 +101,8 @@ class RubotConfig:
             json_indent=int(os.getenv("JSON_INDENT", "2")),
             # Docling configuration
             docling_ocr_engine=os.getenv("DOCLING_OCR_ENGINE", "easyocr"),
-            docling_do_ocr=os.getenv("DOCLING_DO_OCR", "true").lower() == "true",
+            docling_do_ocr=os.getenv("DOCLING_DO_OCR", "true").lower()
+            == "true",
             docling_do_table_structure=os.getenv(
                 "DOCLING_DO_TABLE_STRUCTURE", "false"
             ).lower()
@@ -110,9 +113,14 @@ class RubotConfig:
                 "DOCLING_IMAGE_PLACEHOLDER", "<!-- image -->"
             ),
             # Memory optimization settings
-            docling_use_cpu_only=os.getenv("DOCLING_USE_CPU_ONLY", "false").lower() == "true",
+            docling_use_cpu_only=os.getenv(
+                "DOCLING_USE_CPU_ONLY", "false"
+            ).lower()
+            == "true",
             docling_batch_size=int(os.getenv("DOCLING_BATCH_SIZE", "1")),
-            docling_max_image_size=int(os.getenv("DOCLING_MAX_IMAGE_SIZE", "1024")),
+            docling_max_image_size=int(
+                os.getenv("DOCLING_MAX_IMAGE_SIZE", "1024")
+            ),
         )
 
     def to_dict(self) -> Dict[str, Any]:

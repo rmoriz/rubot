@@ -4,8 +4,6 @@ Docling-based PDF to Markdown converter
 
 import logging
 import os
-import tempfile
-from pathlib import Path
 from typing import Optional, Dict, Any
 from dataclasses import dataclass
 
@@ -15,19 +13,20 @@ try:
 except ImportError:
     # Mock classes for testing
     class DocumentConverter:
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
             pass
-        
-        def convert(self, *args, **kwargs):
+
+        def convert(self, *args: Any, **kwargs: Any) -> Any:
             class MockResult:
-                def __init__(self):
+                def __init__(self) -> None:
                     self.status = ConversionStatus.SUCCESS
                     self.document = self
-                
-                def export_to_markdown(self, **kwargs):
+
+                def export_to_markdown(self, **kwargs: Any) -> str:
                     return "# Mock Markdown\n\nMock content for testing"
+
             return MockResult()
-    
+
     class ConversionStatus:
         SUCCESS = "SUCCESS"
 
@@ -67,12 +66,11 @@ class DoclingPDFConverter:
     def _create_converter(self) -> DocumentConverter:
         """Create and configure DocumentConverter"""
         # Configure for memory optimization
-        import os
-        
+
         # Force CPU usage if configured
         if self.config.use_cpu_only:
             os.environ["CUDA_VISIBLE_DEVICES"] = ""
-        
+
         # Use simple DocumentConverter initialization
         # Docling handles memory optimization internally based on available resources
         return DocumentConverter()
@@ -87,7 +85,9 @@ class DoclingPDFConverter:
 
             # Check conversion status
             if result.status != ConversionStatus.SUCCESS:
-                raise RuntimeError(f"Docling conversion failed: {result.status}")
+                raise RuntimeError(
+                    f"Docling conversion failed: {result.status}"
+                )
 
             # Configure image handling
             try:
@@ -112,7 +112,8 @@ class DoclingPDFConverter:
 
             # Export to markdown with image configuration
             markdown_content: str = result.document.export_to_markdown(
-                image_mode=image_mode, image_placeholder=self.config.image_placeholder
+                image_mode=image_mode,
+                image_placeholder=self.config.image_placeholder,
             )
 
             # Log conversion statistics
@@ -123,7 +124,9 @@ class DoclingPDFConverter:
         except RuntimeError as e:
             if "could not create a primitive" in str(e):
                 self.logger.error("Memory/runtime error in Docling conversion")
-                self.logger.error("Try setting DOCLING_DO_OCR=false and DOCLING_DO_TABLE_STRUCTURE=false")
+                self.logger.error(
+                    "Try setting DOCLING_DO_OCR=false and DOCLING_DO_TABLE_STRUCTURE=false"
+                )
                 self.logger.error("Or reduce PDF size with MAX_PDF_PAGES=10")
             self.logger.error(f"Docling conversion failed: {e}")
             raise RuntimeError(f"PDF conversion failed: {e}") from e

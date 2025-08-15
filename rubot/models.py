@@ -115,8 +115,13 @@ class RathausUmschauAnalysis:
             openrouter_response = json.loads(response_text)
 
             # Extract the actual content from OpenRouter response
-            if "choices" in openrouter_response and openrouter_response["choices"]:
-                actual_content = openrouter_response["choices"][0]["message"]["content"]
+            if (
+                "choices" in openrouter_response
+                and openrouter_response["choices"]
+            ):
+                actual_content = openrouter_response["choices"][0]["message"][
+                    "content"
+                ]
 
                 # Try to parse the content as JSON
                 try:

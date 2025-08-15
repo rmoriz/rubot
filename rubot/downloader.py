@@ -4,11 +4,9 @@ PDF downloader module for Rathaus-Umschau
 
 import requests
 import tempfile
-import re
 import os
 import logging
 import time
-from pathlib import Path
 from typing import Optional, cast
 from .retry import retry_on_failure
 
@@ -27,7 +25,9 @@ def validate_pdf_url(url: str) -> None:
     """Validate that the PDF URL is from the expected domain."""
     expected_domain = "ru.muenchen.de"
     if not url.startswith(f"https://{expected_domain}"):
-        raise ValueError(f"Invalid PDF domain. Expected https://{expected_domain}")
+        raise ValueError(
+            f"Invalid PDF domain. Expected https://{expected_domain}"
+        )
 
 
 def generate_pdf_url(date: str) -> str:
@@ -47,7 +47,9 @@ def generate_pdf_url(date: str) -> str:
     return url
 
 
-@retry_on_failure(max_retries=3, delay=1.0, exceptions=(requests.RequestException,))
+@retry_on_failure(
+    max_retries=3, delay=1.0, exceptions=(requests.RequestException,)
+)
 def download_pdf(date: str, timeout: int = 30) -> str:
     """
     Download PDF from Rathaus-Umschau website.
@@ -86,7 +88,6 @@ def download_pdf(date: str, timeout: int = 30) -> str:
                 pass
 
         # Create temporary file in CACHE_ROOT
-        import os
 
         cache_root = os.getenv("CACHE_ROOT", tempfile.gettempdir())
         cache_dir = os.path.join(cache_root, "downloads")
@@ -114,15 +115,21 @@ def download_pdf(date: str, timeout: int = 30) -> str:
             status_code = 500
 
         if status_code == 404:
-            raise FileNotFoundError(f"PDF not found for date {date}. URL: {url}")
+            raise FileNotFoundError(
+                f"PDF not found for date {date}. URL: {url}"
+            )
         elif status_code == 403:
             raise requests.RequestException(f"Access forbidden to {url}")
         elif status_code >= 500:
-            raise requests.RequestException(f"Server error ({status_code}) at {url}")
+            raise requests.RequestException(
+                f"Server error ({status_code}) at {url}"
+            )
         else:
             raise requests.RequestException(f"HTTP {status_code} at {url}")
     except requests.exceptions.RequestException as e:
-        raise requests.RequestException(f"Failed to download PDF from {url}: {e}")
+        raise requests.RequestException(
+            f"Failed to download PDF from {url}: {e}"
+        )
     except OSError as e:
         raise OSError(f"Failed to write PDF file: {e}")
 
@@ -130,23 +137,23 @@ def download_pdf(date: str, timeout: int = 30) -> str:
 def download_pdf_with_backoff(date: str, timeout: int = 30) -> Optional[str]:
     """
     Download PDF with exponential backoff retry mechanism.
-    
+
     When PDF is not available, retries with exponential backoff:
     1. Wait 10 minutes and retry
     2. Wait 20 minutes and retry
     3. Wait 40 minutes and retry
     4. Wait 80 minutes and retry
-    
+
     Args:
         date: Date string in YYYY-MM-DD format
         timeout: Request timeout in seconds
-        
+
     Returns:
         Path to downloaded PDF file or None if all attempts failed
     """
     logger = logging.getLogger(__name__)
     backoff_times = [10 * 60, 20 * 60, 40 * 60, 80 * 60]  # Times in seconds
-    
+
     # First attempt
     try:
         result = download_pdf(date, timeout)
@@ -156,12 +163,14 @@ def download_pdf_with_backoff(date: str, timeout: int = 30) -> Optional[str]:
     except (requests.RequestException, OSError) as e:
         logger.error(f"Error downloading PDF: {e}")
         return None
-    
+
     # Retry attempts with exponential backoff
     for i, wait_time in enumerate(backoff_times):
-        logger.info(f"Waiting {wait_time/60:.0f} minutes before retry #{i+1}...")
+        logger.info(
+            f"Waiting {wait_time/60:.0f} minutes before retry #{i+1}..."
+        )
         time.sleep(wait_time)
-        
+
         try:
             result = download_pdf(date, timeout)
             return cast(str, result)
@@ -173,5 +182,5 @@ def download_pdf_with_backoff(date: str, timeout: int = 30) -> Optional[str]:
         except (requests.RequestException, OSError) as e:
             logger.error(f"Error downloading PDF on retry #{i+1}: {e}")
             return None
-    
+
     return None

@@ -9,7 +9,9 @@ from typing import Optional
 
 
 def setup_logger(
-    name: str = "rubot", level: Optional[str] = None, force_stderr: bool = False
+    name: str = "rubot",
+    level: Optional[str] = None,
+    force_stderr: bool = False,
 ) -> logging.Logger:
     """
     Setup logger with appropriate formatting and level.

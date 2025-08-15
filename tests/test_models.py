@@ -7,7 +7,12 @@ import json
 from datetime import datetime
 from unittest.mock import patch
 
-from rubot.models import Announcement, Event, ImportantDate, RathausUmschauAnalysis
+from rubot.models import (
+    Announcement,
+    Event,
+    ImportantDate,
+    RathausUmschauAnalysis,
+)
 
 
 class TestModels:
@@ -58,7 +63,7 @@ class TestModels:
         assert event.time == "14:00"
         assert event.location == "City Hall"
         assert event.description == "Test event description"
-        
+
     def test_event_to_dict(self):
         """Test Event to_dict method"""
         event = Event(
@@ -68,7 +73,7 @@ class TestModels:
             location="City Hall",
             description="Test event description",
         )
-        
+
         result = event.to_dict()
         expected = {
             "title": "Test Event",
@@ -77,13 +82,13 @@ class TestModels:
             "location": "City Hall",
             "description": "Test event description",
         }
-        
+
         assert result == expected
-        
+
     def test_event_with_minimal_fields(self):
         """Test Event with only required fields"""
         event = Event(title="Minimal Event")
-        
+
         assert event.title == "Minimal Event"
         assert event.date is None
         assert event.time is None
@@ -101,7 +106,7 @@ class TestModels:
         assert imp_date.description == "Application deadline"
         assert imp_date.date == "2024-01-31"
         assert imp_date.details == "Submit by 5 PM"
-        
+
     def test_important_date_to_dict(self):
         """Test ImportantDate to_dict method"""
         imp_date = ImportantDate(
@@ -109,20 +114,20 @@ class TestModels:
             date="2024-01-31",
             details="Submit by 5 PM",
         )
-        
+
         result = imp_date.to_dict()
         expected = {
             "description": "Application deadline",
             "date": "2024-01-31",
             "details": "Submit by 5 PM",
         }
-        
+
         assert result == expected
-        
+
     def test_important_date_without_details(self):
         """Test ImportantDate without optional details"""
         imp_date = ImportantDate(description="Deadline", date="2024-02-01")
-        
+
         assert imp_date.description == "Deadline"
         assert imp_date.date == "2024-02-01"
         assert imp_date.details is None
@@ -152,13 +157,13 @@ class TestModels:
         assert len(analysis.important_dates) == 1
         assert analysis.source_date == "2024-01-15"
         assert analysis.model_used == "test-model"
-        
+
     def test_rathaus_umschau_analysis_post_init(self):
         """Test RathausUmschauAnalysis __post_init__ method"""
-        with patch('rubot.models.datetime') as mock_datetime:
+        with patch("rubot.models.datetime") as mock_datetime:
             mock_datetime.now.return_value = datetime(2024, 1, 15, 12, 0, 0)
             mock_datetime.isoformat = datetime.isoformat
-            
+
             # Create analysis without processing_date
             analysis = RathausUmschauAnalysis(
                 summary="Test",
@@ -169,7 +174,7 @@ class TestModels:
                 source_date="2024-01-15",
                 model_used="test-model",
             )
-            
+
             # Should be set by __post_init__
             assert analysis.processing_date == "2024-01-15T12:00:00"
 
@@ -181,7 +186,7 @@ class TestModels:
         ]
         events = [Event("Event 1", "2024-01-15")]
         important_dates = [ImportantDate("Deadline", "2024-01-31")]
-        
+
         analysis = RathausUmschauAnalysis(
             summary="Test summary",
             announcements=announcements,
@@ -191,9 +196,9 @@ class TestModels:
             source_date="2024-01-15",
             model_used="test-model",
         )
-        
+
         result = analysis.to_dict()
-        
+
         assert result["summary"] == "Test summary"
         assert len(result["announcements"]) == 2
         assert result["announcements"][0]["title"] == "Ann 1"
@@ -224,7 +229,7 @@ class TestModels:
         assert parsed["announcements"] == []
         assert parsed["source_date"] == "2024-01-15"
         assert parsed["model_used"] == "test-model"
-        
+
     def test_rathaus_umschau_analysis_to_json_with_indent(self):
         """Test RathausUmschauAnalysis to_json method with custom indent"""
         analysis = RathausUmschauAnalysis(
@@ -236,14 +241,14 @@ class TestModels:
             source_date="2024-01-15",
             model_used="test-model",
         )
-        
+
         # Test with custom indent
         json_str = analysis.to_json(indent=4)
-        
+
         # Ensure it's valid JSON
         parsed = json.loads(json_str)
         assert parsed["summary"] == "Test"
-        
+
         # Check indentation (basic check)
         lines = json_str.split("\n")
         if len(lines) > 1:  # Has newlines with indentation
@@ -263,9 +268,15 @@ class TestModels:
                 }
             ],
             "events": [
-                {"title": "Test Event", "date": "2024-01-16", "location": "Munich"}
+                {
+                    "title": "Test Event",
+                    "date": "2024-01-16",
+                    "location": "Munich",
+                }
             ],
-            "important_dates": [{"description": "Test deadline", "date": "2024-01-31"}],
+            "important_dates": [
+                {"description": "Test deadline", "date": "2024-01-31"}
+            ],
         }
 
         openrouter_response = {
@@ -299,7 +310,7 @@ class TestModels:
         assert len(analysis.important_dates) == 0
         assert analysis.source_date == "2024-01-15"
         assert analysis.model_used == "test-model"
-        
+
     def test_from_llm_response_content_not_json(self):
         """Test creating analysis from LLM response where content is not JSON"""
         # Create OpenRouter format response where content is not JSON
@@ -307,49 +318,51 @@ class TestModels:
             "choices": [{"message": {"content": "This is not JSON content"}}]
         }
         llm_response = json.dumps(openrouter_response)
-        
+
         analysis = RathausUmschauAnalysis.from_llm_response(
             llm_response, "2024-01-15", "test-model"
         )
-        
+
         assert "This is not JSON content" in analysis.summary
         assert len(analysis.announcements) == 0
         assert len(analysis.events) == 0
         assert len(analysis.important_dates) == 0
-        
+
     def test_from_llm_response_content_not_dict(self):
         """Test creating analysis from LLM response where JSON content is not a dict"""
         # Create OpenRouter format response where content is JSON array, not object
         openrouter_response = {
-            "choices": [{"message": {"content": json.dumps(["item1", "item2"])}}]
+            "choices": [
+                {"message": {"content": json.dumps(["item1", "item2"])}}
+            ]
         }
         llm_response = json.dumps(openrouter_response)
-        
+
         analysis = RathausUmschauAnalysis.from_llm_response(
             llm_response, "2024-01-15", "test-model"
         )
-        
+
         # Should handle this gracefully
         assert len(analysis.announcements) == 0
         assert len(analysis.events) == 0
         assert len(analysis.important_dates) == 0
-        
+
     def test_from_llm_response_no_choices(self):
         """Test creating analysis from LLM response with no choices"""
         # Create OpenRouter format response with no choices
         openrouter_response = {"id": "test", "object": "chat.completion"}
         llm_response = json.dumps(openrouter_response)
-        
+
         analysis = RathausUmschauAnalysis.from_llm_response(
             llm_response, "2024-01-15", "test-model"
         )
-        
+
         # Should use raw response as summary
         assert json.dumps(openrouter_response) in analysis.summary
         assert len(analysis.announcements) == 0
         assert len(analysis.events) == 0
         assert len(analysis.important_dates) == 0
-        
+
     def test_from_llm_response_missing_fields(self):
         """Test creating analysis from LLM response with missing fields"""
         # Create content with missing fields
@@ -359,31 +372,31 @@ class TestModels:
             "events": [{"title": "Test Event"}],  # Minimal event data
             # Missing important_dates
         }
-        
+
         openrouter_response = {
             "choices": [{"message": {"content": json.dumps(content_data)}}]
         }
         llm_response = json.dumps(openrouter_response)
-        
+
         analysis = RathausUmschauAnalysis.from_llm_response(
             llm_response, "2024-01-15", "test-model"
         )
-        
+
         assert analysis.summary == "Test summary"
         assert len(analysis.announcements) == 0  # Missing in input
         assert len(analysis.events) == 1
         assert analysis.events[0].title == "Test Event"
         assert len(analysis.important_dates) == 0  # Missing in input
-        
+
     def test_from_llm_response_truncate_long_summary(self):
         """Test summary truncation for non-JSON responses"""
         # Create a very long text response
         long_text = "A" * 1000  # 1000 characters
-        
+
         analysis = RathausUmschauAnalysis.from_llm_response(
             long_text, "2024-01-15", "test-model"
         )
-        
+
         # Summary should be truncated to 500 chars + "..."
         assert len(analysis.summary) == 503
         assert analysis.summary.endswith("...")

@@ -3,7 +3,6 @@ Markdown cache for PDF conversion results
 """
 
 import os
-import hashlib
 import tempfile
 from pathlib import Path
 from typing import Optional, Tuple, Dict, Any
@@ -31,7 +30,9 @@ class MarkdownCache:
         if cache_root:
             cache_dir = os.path.join(cache_root, "markdown_cache")
         elif cache_dir is None:
-            cache_dir = os.path.join(tempfile.gettempdir(), "rubot_markdown_cache")
+            cache_dir = os.path.join(
+                tempfile.gettempdir(), "rubot_markdown_cache"
+            )
 
         self.cache_dir = Path(cache_dir)
         self.cache_dir.mkdir(parents=True, exist_ok=True)

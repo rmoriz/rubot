@@ -9,32 +9,35 @@ from pathlib import Path
 import tempfile
 from unittest.mock import patch, MagicMock
 
+
 # Create a clean mock for docling functionality
 class MockDocling:
     """Simple mock for docling with minimum functionality needed for tests"""
+
     class DocumentConverter:
         def __init__(self, *args, **kwargs):
             pass
-        
+
         def convert(self, *args, **kwargs):
             result = MagicMock()
             result.status = "SUCCESS"
             result.document = MagicMock()
             result.document.export_to_markdown.return_value = "# Mock Markdown"
             return result
-    
+
     class ConversionStatus:
         SUCCESS = "SUCCESS"
-    
+
     class DoclingConfig:
         def __init__(self, **kwargs):
             for k, v in kwargs.items():
                 setattr(self, k, v)
-    
+
     class ImageRefMode:
         PLACEHOLDER = "placeholder"
         EMBEDDED = "embedded"
         REFERENCED = "referenced"
+
 
 # Create a mock for docling_core
 class MockDoclingCore:
@@ -46,20 +49,25 @@ class MockDoclingCore:
                     EMBEDDED = "embedded"
                     REFERENCED = "referenced"
 
+
 # Set up mock modules
 mock_docling = MockDocling()
 mock_docling_core = MockDoclingCore()
 
-sys.modules['docling'] = mock_docling
-sys.modules['docling.document_converter'] = MagicMock()
-sys.modules['docling.document_converter'].DocumentConverter = mock_docling.DocumentConverter
-sys.modules['docling.datamodel'] = MagicMock()
-sys.modules['docling.datamodel.base_models'] = MagicMock()
-sys.modules['docling.datamodel.base_models'].ConversionStatus = mock_docling.ConversionStatus
-sys.modules['docling_core'] = mock_docling_core
-sys.modules['docling_core.types'] = mock_docling_core.types
-sys.modules['docling_core.types.doc'] = mock_docling_core.types.doc
-sys.modules['docling_core.types.doc.base'] = mock_docling_core.types.doc.base
+sys.modules["docling"] = mock_docling
+sys.modules["docling.document_converter"] = MagicMock()
+sys.modules["docling.document_converter"].DocumentConverter = (
+    mock_docling.DocumentConverter
+)
+sys.modules["docling.datamodel"] = MagicMock()
+sys.modules["docling.datamodel.base_models"] = MagicMock()
+sys.modules["docling.datamodel.base_models"].ConversionStatus = (
+    mock_docling.ConversionStatus
+)
+sys.modules["docling_core"] = mock_docling_core
+sys.modules["docling_core.types"] = mock_docling_core.types
+sys.modules["docling_core.types.doc"] = mock_docling_core.types.doc
+sys.modules["docling_core.types.doc.base"] = mock_docling_core.types.doc.base
 
 from rubot.config import RubotConfig
 

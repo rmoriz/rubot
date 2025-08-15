@@ -70,4 +70,7 @@ def test_cli_help():
     runner = CliRunner()
     result = runner.invoke(main, ["--help"])
     assert result.exit_code == 0
-    assert "CLI tool for downloading and processing Rathaus-Umschau PDFs" in result.output
+    assert (
+        "CLI tool for downloading and processing Rathaus-Umschau PDFs"
+        in result.output
+    )

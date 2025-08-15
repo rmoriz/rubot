@@ -38,8 +38,12 @@ class TestRubotConfig:
         # Add only the model but not the API key
         temp_env["DEFAULT_MODEL"] = "test/model"
 
-        with patch("pathlib.Path.exists", return_value=False):  # Ensure no .env file
-            with patch("rubot.config.load_dotenv"):  # Prevent any dotenv loading
+        with patch(
+            "pathlib.Path.exists", return_value=False
+        ):  # Ensure no .env file
+            with patch(
+                "rubot.config.load_dotenv"
+            ):  # Prevent any dotenv loading
                 with pytest.raises(
                     ValueError,
                     match="OPENROUTER_API_KEY environment variable is required",
@@ -47,18 +51,26 @@ class TestRubotConfig:
                     RubotConfig.from_env()
 
     @patch.dict(
-        os.environ, {"OPENROUTER_API_KEY": "test_key", "DEFAULT_MODEL": "test/model"}
+        os.environ,
+        {"OPENROUTER_API_KEY": "test_key", "DEFAULT_MODEL": "test/model"},
     )
     def test_from_env_defaults(self):
         """Test config loading with required values and defaults"""
-        with patch("pathlib.Path.exists", return_value=False):  # Ensure no .env file
-            with patch("rubot.config.load_dotenv"):  # Prevent any dotenv loading
+        with patch(
+            "pathlib.Path.exists", return_value=False
+        ):  # Ensure no .env file
+            with patch(
+                "rubot.config.load_dotenv"
+            ):  # Prevent any dotenv loading
                 config = RubotConfig.from_env()
 
                 assert config.openrouter_api_key == "test_key"
                 assert config.default_model == "test/model"
                 # Note: This may vary based on local environment - CI uses 120, local may use 30
-                assert config.request_timeout in [30, 120]  # Accept both values
+                assert config.request_timeout in [
+                    30,
+                    120,
+                ]  # Accept both values
                 assert config.cache_enabled is True
                 assert config.max_pdf_pages == 100
 
@@ -70,15 +82,21 @@ class TestRubotConfig:
         # Add only the API key but not the model
         temp_env["OPENROUTER_API_KEY"] = "test_key"
 
-        with patch("pathlib.Path.exists", return_value=False):  # Ensure no .env file
-            with patch("rubot.config.load_dotenv"):  # Prevent any dotenv loading
+        with patch(
+            "pathlib.Path.exists", return_value=False
+        ):  # Ensure no .env file
+            with patch(
+                "rubot.config.load_dotenv"
+            ):  # Prevent any dotenv loading
                 with pytest.raises(
-                    ValueError, match="DEFAULT_MODEL environment variable is required"
+                    ValueError,
+                    match="DEFAULT_MODEL environment variable is required",
                 ):
                     RubotConfig.from_env()
 
     @patch.dict(
-        os.environ, {"OPENROUTER_API_KEY": "test_key", "DEFAULT_MODEL": "test/model"}
+        os.environ,
+        {"OPENROUTER_API_KEY": "test_key", "DEFAULT_MODEL": "test/model"},
     )
     def test_to_dict_masks_api_key(self):
         """Test config to_dict masks sensitive information"""
@@ -96,7 +114,8 @@ class TestRubotConfig:
     @patch("pathlib.Path.exists")
     @patch("rubot.config.load_dotenv")
     @patch.dict(
-        os.environ, {"OPENROUTER_API_KEY": "test_key", "DEFAULT_MODEL": "file/model"}
+        os.environ,
+        {"OPENROUTER_API_KEY": "test_key", "DEFAULT_MODEL": "file/model"},
     )
     def test_from_env_with_file(self, mock_load_dotenv, mock_exists):
         """Test config loading with .env file"""
@@ -129,7 +148,8 @@ class TestRubotConfig:
         assert config.docling_model_cache_dir == "/custom/cache"
 
     @patch.dict(
-        os.environ, {"OPENROUTER_API_KEY": "test_key", "DEFAULT_MODEL": "test/model"}
+        os.environ,
+        {"OPENROUTER_API_KEY": "test_key", "DEFAULT_MODEL": "test/model"},
     )
     def test_docling_defaults(self):
         """Test Docling configuration defaults"""
@@ -137,6 +157,8 @@ class TestRubotConfig:
 
         assert config.docling_ocr_engine == "easyocr"
         assert config.docling_do_ocr is True
-        assert config.docling_do_table_structure is False  # Disabled by default for performance
+        assert (
+            config.docling_do_table_structure is False
+        )  # Disabled by default for performance
         # Allow both None and the example path for flexibility in tests
         assert config.docling_model_cache_dir in [None, "/path/to/model/cache"]

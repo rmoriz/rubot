@@ -25,7 +25,9 @@ def validate_date(date_str: str) -> bool:
     """
     pattern = r"^\d{4}-\d{2}-\d{2}$"
     if not re.match(pattern, date_str):
-        raise ValueError(f"Invalid date format: {date_str}. Expected YYYY-MM-DD")
+        raise ValueError(
+            f"Invalid date format: {date_str}. Expected YYYY-MM-DD"
+        )
 
     try:
         datetime.strptime(date_str, "%Y-%m-%d")

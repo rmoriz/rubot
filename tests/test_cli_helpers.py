@@ -4,12 +4,14 @@ import logging
 import io, sys
 from rubot.cache import PDFCache
 
+
 def test_cleanup_temp_files(tmp_path):
     f = tmp_path / "todelete.txt"
     f.write_text("x")
     logger = logging.getLogger("t")
     cli._cleanup_temp_files(None, str(f), logger)
     assert not f.exists()
+
 
 def test_log_cache_cleanup_info():
     logger = logging.getLogger("t-logcache")
