@@ -19,8 +19,15 @@ def cli_runner():
 
 class TestIntegration:
 
-    def test_full_workflow_success(self, cli_runner, temp_config):
+    def test_full_workflow_success(self, cli_runner, temp_config, mock_openrouter_requests):
         """Test complete workflow from PDF download to LLM processing with Docling"""
+        from tests.conftest import OpenRouterMockResponses
+        
+        # Set up structured JSON response
+        mock_openrouter_requests.set_single_response(
+            OpenRouterMockResponses.structured_json_response()
+        )
+        
         with tempfile.NamedTemporaryFile(
             suffix=".pdf", delete=False
         ) as tmp_file:
@@ -37,10 +44,6 @@ class TestIntegration:
                     "rubot.cli._convert_to_markdown",
                     return_value="# Test PDF Content\n\nDocling converted content",
                 ),
-                patch(
-                    "rubot.cli.process_with_openrouter_backoff",
-                    return_value='{"result": "success"}',
-                ) as mock_llm_backoff,
             ):
 
                 with (
@@ -60,18 +63,24 @@ class TestIntegration:
                     print(f"CLI output: {result.output}")
                     print(f"Exception: {result.exception}")
                 assert result.exit_code == 0
-                # Note: Converter may not be called due to caching or other optimizations
-                # The important thing is that the CLI runs successfully
-                mock_llm_backoff.assert_called_once()
+                # Verify the OpenRouter API was called
+                assert mock_openrouter_requests.get_call_count() == 1
 
         finally:
             if os.path.exists(tmp_path):
                 os.unlink(tmp_path)
 
     def test_workflow_with_custom_prompt_and_model(
-        self, cli_runner, temp_config
+        self, cli_runner, temp_config, mock_openrouter_requests
     ):
         """Test workflow with custom prompt and model using Docling"""
+        from tests.conftest import OpenRouterMockResponses
+        
+        # Set up structured JSON response
+        mock_openrouter_requests.set_single_response(
+            OpenRouterMockResponses.structured_json_response()
+        )
+        
         with tempfile.NamedTemporaryFile(
             suffix=".pdf", delete=False
         ) as tmp_file:
@@ -95,10 +104,6 @@ class TestIntegration:
                     "rubot.cli._convert_to_markdown",
                     return_value="# Custom PDF Content\n\nCustom docling output",
                 ),
-                patch(
-                    "rubot.cli.process_with_openrouter_backoff",
-                    return_value='{"result": "custom"}',
-                ) as mock_llm_backoff,
             ):
 
                 with (
@@ -123,9 +128,10 @@ class TestIntegration:
                     )
 
                 assert result.exit_code == 0
-                # Note: Converter may not be called due to caching or other optimizations
-                # The important thing is that the CLI runs successfully
-                mock_llm_backoff.assert_called_once()
+                # Verify the OpenRouter API was called with custom model
+                assert mock_openrouter_requests.get_call_count() == 1
+                last_request = mock_openrouter_requests.get_last_request()
+                assert last_request["json"]["model"] == "custom-model"
 
         finally:
             if os.path.exists(tmp_path):
@@ -150,3 +156,36 @@ class TestIntegration:
                 result = cli_runner.invoke(main, ["--date", "2024-01-15"])
 
         assert result.exit_code == 1
+
+
+@pytest.mark.integration_real_api
+class TestRealAPIIntegration:
+    """Integration tests that actually call the OpenRouter API - requires API key"""
+    
+    def test_real_api_call(self, temp_env):
+        """Test that we can actually call OpenRouter API - requires real API key"""
+        # Skip if no real API key is available
+        real_api_key = os.getenv("OPENROUTER_API_KEY_REAL")
+        if not real_api_key:
+            pytest.skip("OPENROUTER_API_KEY_REAL not set - skipping real API test")
+            
+        # Temporarily set the real API key
+        temp_env["OPENROUTER_API_KEY"] = real_api_key
+        
+        from rubot.llm import process_with_openrouter
+        
+        result = process_with_openrouter(
+            "This is a test markdown content for API testing.",
+            None,
+            "moonshotai/kimi-k2:free",
+            temperature=0.1,
+            max_tokens=100
+        )
+        
+        # Verify we got a valid response
+        import json
+        parsed = json.loads(result)
+        assert "choices" in parsed
+        assert len(parsed["choices"]) > 0
+        assert "content" in parsed["choices"][0]["message"]
+        assert len(parsed["choices"][0]["message"]["content"].strip()) > 0

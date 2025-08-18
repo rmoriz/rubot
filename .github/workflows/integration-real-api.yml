@@ -1,0 +1,53 @@
+name: Integration Tests (Real API)
+
+on:
+  # Only run manually or on releases
+  workflow_dispatch:
+    inputs:
+      test_model:
+        description: 'Model to test with'
+        required: false
+        default: 'moonshotai/kimi-k2:free'
+        type: string
+  release:
+    types: [published]
+
+jobs:
+  integration-test:
+    runs-on: ubuntu-latest
+    # Only run if we have the real API key secret
+    if: ${{ secrets.OPENROUTER_API_KEY_REAL }}
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      
+      # Install system dependencies for Docling
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y tesseract-ocr tesseract-ocr-deu libgl1
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e ".[dev,ocr-tesseract]"
+      
+      - name: Run integration tests with real API
+        run: |
+          pytest tests/ -v -m "integration_real_api" --tb=short
+        env:
+          OPENROUTER_API_KEY_REAL: ${{ secrets.OPENROUTER_API_KEY_REAL }}
+          DEFAULT_MODEL: ${{ github.event.inputs.test_model || 'moonshotai/kimi-k2:free' }}
+          PYTHONWARNINGS: "ignore::UserWarning"
+      
+      - name: Report results
+        if: always()
+        run: |
+          echo "Integration tests completed."
+          echo "These tests verify that rubot can successfully communicate with the OpenRouter API."
