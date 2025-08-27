@@ -37,9 +37,6 @@ def load_prompt(prompt_path: Optional[str]) -> str:
     )
 
 
-@retry_on_failure(
-    max_retries=2, delay=10.0, exceptions=(requests.RequestException,)
-)
 def process_with_openrouter(
     markdown_content: str,
     prompt_path: Optional[str],
@@ -211,14 +208,12 @@ def process_with_openrouter_backoff(
     timeout: int = 120,
 ) -> str:
     """
-    Process markdown content with OpenRouter API using exponential backoff for retries.
+    Process markdown content with OpenRouter API using retry mechanism.
 
-    Will retry in case of errors or empty responses with the following pattern:
-    1. Wait 1 minute and retry
-    2. Wait 2 minutes and retry
-    3. Wait 4 minutes and retry
-    4. Wait 8 minutes and retry
-    5. Wait 16 minutes and retry
+    Will retry 3 times in case of errors with 10 minutes sleep between attempts:
+    1. Wait 10 minutes and retry
+    2. Wait 10 minutes and retry  
+    3. Wait 10 minutes and retry
 
     Args:
         markdown_content: Markdown content to process
@@ -237,20 +232,45 @@ def process_with_openrouter_backoff(
         ValueError: If API key is missing or responses are invalid
     """
     logger = logging.getLogger(__name__)
-    backoff_times = [
-        60,
-        120,
-        240,
-        480,
-        960,
-    ]  # Times in seconds (1m, 2m, 4m, 8m, 16m)
-    max_attempts = len(backoff_times) + 1  # Initial attempt + retries
+    max_retries = 3
+    sleep_time = 10 * 60  # 10 minutes in seconds
 
-    for attempt in range(max_attempts):
+    # First attempt
+    try:
+        logger.info("OpenRouter request - first attempt")
+        response = process_with_openrouter(
+            markdown_content,
+            prompt_path,
+            model,
+            temperature,
+            max_tokens,
+            verbose,
+            timeout,
+        )
+
+        # Parse response to check if it's valid
+        response_json = json.loads(response)
+        if is_valid_openrouter_response(response_json):
+            logger.info("OpenRouter request successful on first attempt")
+            return cast(str, response)
+        else:
+            error_msg = "Empty or invalid content in OpenRouter response"
+            logger.warning(f"{error_msg} on first attempt")
+
+    except (
+        requests.RequestException,
+        ValueError,
+        json.JSONDecodeError,
+    ) as e:
+        logger.warning(f"OpenRouter request failed on first attempt: {e}")
+
+    # Retry attempts with 10 minute sleep
+    for attempt in range(max_retries):
+        logger.info(f"Waiting {sleep_time/60:.0f} minutes before retry #{attempt+1}...")
+        time.sleep(sleep_time)
+
         try:
-            logger.info(
-                f"OpenRouter request attempt {attempt + 1}/{max_attempts}"
-            )
+            logger.info(f"OpenRouter retry attempt #{attempt+1}")
             response = process_with_openrouter(
                 markdown_content,
                 prompt_path,
@@ -264,43 +284,26 @@ def process_with_openrouter_backoff(
             # Parse response to check if it's valid
             response_json = json.loads(response)
             if is_valid_openrouter_response(response_json):
-                logger.info(
-                    f"OpenRouter request successful on attempt {attempt + 1}"
-                )
+                logger.info(f"OpenRouter request successful on retry #{attempt+1}")
                 return cast(str, response)
             else:
                 error_msg = "Empty or invalid content in OpenRouter response"
-                logger.warning(f"{error_msg} on attempt {attempt + 1}")
-
-                if attempt == max_attempts - 1:
-                    # Last attempt failed, raise exception
+                logger.warning(f"{error_msg} on retry #{attempt+1}")
+                
+                if attempt == max_retries - 1:
+                    logger.error("Maximum retries reached, OpenRouter request failed")
                     raise ValueError(error_msg)
-
-                # Calculate wait time for next attempt
-                wait_time = backoff_times[attempt]
-                logger.info(
-                    f"Waiting {wait_time/60:.0f} minutes before retry..."
-                )
-                time.sleep(wait_time)
 
         except (
             requests.RequestException,
             ValueError,
             json.JSONDecodeError,
         ) as e:
-            logger.warning(
-                f"OpenRouter request failed on attempt {attempt + 1}: {e}"
-            )
-
-            if attempt == max_attempts - 1:
-                # Last attempt failed, raise exception
-                logger.error(f"All {max_attempts} OpenRouter attempts failed")
+            logger.warning(f"OpenRouter request failed on retry #{attempt+1}: {e}")
+            
+            if attempt == max_retries - 1:
+                logger.error(f"All {max_retries + 1} OpenRouter attempts failed")
                 raise
-
-            # Calculate wait time for next attempt
-            wait_time = backoff_times[attempt]
-            logger.info(f"Waiting {wait_time/60:.0f} minutes before retry...")
-            time.sleep(wait_time)
 
     # This should never be reached due to the exception in the last iteration
     raise RuntimeError("Unexpected end of OpenRouter retry loop")

@@ -11,6 +11,16 @@ try:
     from docling.document_converter import DocumentConverter
     from docling.datamodel.base_models import ConversionStatus
     _DOCLING_AVAILABLE = True
+    
+    # Workaround for "Could not initialize NNPACK! Reason: Unsupported hardware"
+    # Disable NNPACK backend when no GPU support is available
+    try:
+        import torch
+        torch.backends.nnpack.enabled = False  # type: ignore[attr-defined]
+    except ImportError:
+        # torch not available, skip the workaround
+        pass
+        
 except ImportError:
     _DOCLING_AVAILABLE = False
     
@@ -75,6 +85,10 @@ class DoclingPDFConverter:
     def __init__(self, config: DoclingConfig):
         self.config = config
         self.logger = logging.getLogger(__name__)
+        
+        # Apply PyTorch NNPACK workaround early
+        self._apply_pytorch_workarounds()
+        
         self.logger.info(
             f"Initializing Docling converter with OCR engine: {config.ocr_engine}"
         )
@@ -82,6 +96,20 @@ class DoclingPDFConverter:
             f"OCR enabled: {config.do_ocr}, Table structure: {config.do_table_structure}"
         )
         self._converter = self._create_converter()
+
+    def _apply_pytorch_workarounds(self) -> None:
+        """Apply PyTorch workarounds for unsupported hardware"""
+        try:
+            import torch
+            # Disable NNPACK backend to prevent "Could not initialize NNPACK! Reason: Unsupported hardware"
+            if hasattr(torch.backends, 'nnpack') and hasattr(torch.backends.nnpack, 'enabled'):
+                torch.backends.nnpack.enabled = False  # type: ignore[attr-defined]
+                self.logger.info("Applied PyTorch NNPACK workaround (disabled NNPACK backend)")
+        except ImportError:
+            # torch not available, skip the workaround
+            pass
+        except Exception as e:
+            self.logger.warning(f"Could not apply PyTorch NNPACK workaround: {e}")
 
     def _create_converter(self) -> Any:
         """Create and configure DocumentConverter"""

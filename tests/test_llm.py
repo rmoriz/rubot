@@ -177,7 +177,7 @@ class TestLLM:
 
         # Should be called twice
         assert mock_openrouter_requests.get_call_count() == 2
-        mock_sleep.assert_called_once_with(60)  # Should sleep for 1 minute
+        mock_sleep.assert_called_once_with(10 * 60)  # Should sleep for 10 minutes
 
         # Result should be valid
         parsed = json.loads(result)
@@ -200,18 +200,16 @@ class TestLLM:
         ):
             process_with_openrouter_backoff("Test content", None, "test-model")
 
-        # Should be called 6 times (initial + 5 retries)
-        assert mock_openrouter_requests.get_call_count() == 6
-        assert mock_sleep.call_count == 5
+        # Should be called 4 times (initial + 3 retries)
+        assert mock_openrouter_requests.get_call_count() == 4
+        assert mock_sleep.call_count == 3
 
-        # Verify exponential backoff sleep times
+        # Verify consistent 10-minute sleep times
         mock_sleep.assert_has_calls(
             [
-                call(60),  # 1 minute
-                call(120),  # 2 minutes
-                call(240),  # 4 minutes
-                call(480),  # 8 minutes
-                call(960),  # 16 minutes
+                call(10 * 60),  # 10 minutes
+                call(10 * 60),  # 10 minutes
+                call(10 * 60),  # 10 minutes
             ]
         )
 
@@ -241,12 +239,10 @@ class TestLLM:
                 "Test content", None, "test-model"
             )
 
-        # Should be called more than twice due to retry_on_failure decorator in process_with_openrouter
-        # First call fails -> process_with_openrouter retries 2 times with 10s delays -> then backoff retries with 60s
-        assert call_count >= 2
-        # The backoff mechanism sleeps for 60s, but process_with_openrouter retries sleep for 10s
-        # Both 10.0 and 60 could be called depending on which retry mechanism triggers
-        assert any(call.args[0] in [10.0, 60] for call in mock_sleep.call_args_list)
+        # Should be called twice - first call fails, second succeeds
+        assert call_count == 2
+        # The backoff mechanism sleeps for 10 minutes
+        mock_sleep.assert_called_once_with(10 * 60)
 
         # Result should be valid
         parsed = json.loads(result)
@@ -263,12 +259,8 @@ class TestLLM:
             with pytest.raises(requests.RequestException):
                 process_with_openrouter_backoff("Test content", None, "test-model")
 
-            # Should be called multiple times due to retry mechanisms in both functions
-            # process_with_openrouter has max_retries=2, so it will be called up to 3 times per backoff attempt
-            # Then process_with_openrouter_backoff can retry up to 6 times total
-            # So total calls could be much higher: up to 3 calls * 6 backoff attempts = 18 calls
-            assert mock_post.call_count >= 6
-            # process_with_openrouter will sleep 2 times (for its 2 retries) with 10s delays
-            # process_with_openrouter_backoff will sleep 5 times with backoff delays
-            # So total sleep calls should be at least 5 (from backoff) + potentially more from inner retries
-            assert mock_sleep.call_count >= 5
+            # Should be called 4 times total (initial + 3 retries)
+            assert mock_post.call_count == 4
+            # process_with_openrouter_backoff will sleep 3 times with 10-minute delays
+            assert mock_sleep.call_count == 3
+            mock_sleep.assert_has_calls([call(10 * 60)] * 3)
