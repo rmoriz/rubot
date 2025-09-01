@@ -8,7 +8,7 @@ import os
 import logging
 import time
 from pathlib import Path
-from typing import Optional, Dict, Any, cast
+from typing import Optional, Dict, Any, cast, Union
 
 
 def load_prompt(prompt_path: Optional[str]) -> str:
@@ -278,7 +278,7 @@ def process_with_openrouter_backoff(
         logger.warning(f"OpenRouter request failed on first attempt: {e}")
 
     # Retry attempts with primary model and progressive delays
-    last_exception = None
+    last_exception: Optional[Exception] = None
     for attempt in range(max_retries):
         delay = retry_delays[attempt + 1]  # Skip first delay (0s) since we already tried
         if delay > 0:
