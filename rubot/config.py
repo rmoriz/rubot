@@ -16,6 +16,7 @@ class RubotConfig:
     # API Configuration
     openrouter_api_key: str
     default_model: str
+    fallback_model: Optional[str] = None
 
     # File paths
     default_prompt_file: Optional[str] = None
@@ -86,6 +87,7 @@ class RubotConfig:
         return cls(
             openrouter_api_key=api_key,
             default_model=model,
+            fallback_model=os.getenv("FALLBACK_MODEL"),
             default_prompt_file=os.getenv("DEFAULT_PROMPT_FILE"),
             cache_dir=os.getenv("CACHE_DIR"),
             cache_root=os.getenv("CACHE_ROOT"),
@@ -128,6 +130,7 @@ class RubotConfig:
         return {
             "openrouter_api_key": "***" if self.openrouter_api_key else None,
             "default_model": self.default_model,
+            "fallback_model": self.fallback_model,
             "default_prompt_file": self.default_prompt_file,
             "cache_dir": self.cache_dir,
             "cache_root": self.cache_root,

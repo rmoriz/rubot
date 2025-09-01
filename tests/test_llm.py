@@ -177,7 +177,7 @@ class TestLLM:
 
         # Should be called twice
         assert mock_openrouter_requests.get_call_count() == 2
-        mock_sleep.assert_called_once_with(10 * 60)  # Should sleep for 10 minutes
+        mock_sleep.assert_called_once_with(30)  # Should sleep for 30 seconds on first retry
 
         # Result should be valid
         parsed = json.loads(result)
@@ -204,12 +204,12 @@ class TestLLM:
         assert mock_openrouter_requests.get_call_count() == 4
         assert mock_sleep.call_count == 3
 
-        # Verify consistent 10-minute sleep times
+        # Verify progressive sleep times
         mock_sleep.assert_has_calls(
             [
-                call(10 * 60),  # 10 minutes
-                call(10 * 60),  # 10 minutes
-                call(10 * 60),  # 10 minutes
+                call(30),   # 30 seconds
+                call(60),   # 60 seconds  
+                call(120),  # 120 seconds
             ]
         )
 
@@ -241,8 +241,8 @@ class TestLLM:
 
         # Should be called twice - first call fails, second succeeds
         assert call_count == 2
-        # The backoff mechanism sleeps for 10 minutes
-        mock_sleep.assert_called_once_with(10 * 60)
+        # The backoff mechanism sleeps for 30 seconds on first retry
+        mock_sleep.assert_called_once_with(30)
 
         # Result should be valid
         parsed = json.loads(result)
@@ -261,6 +261,6 @@ class TestLLM:
 
             # Should be called 4 times total (initial + 3 retries)
             assert mock_post.call_count == 4
-            # process_with_openrouter_backoff will sleep 3 times with 10-minute delays
+            # process_with_openrouter_backoff will sleep 3 times with progressive delays
             assert mock_sleep.call_count == 3
-            mock_sleep.assert_has_calls([call(10 * 60)] * 3)
+            mock_sleep.assert_has_calls([call(30), call(60), call(120)])

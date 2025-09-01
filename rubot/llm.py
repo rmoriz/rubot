@@ -9,7 +9,6 @@ import logging
 import time
 from pathlib import Path
 from typing import Optional, Dict, Any, cast
-from .retry import retry_on_failure
 
 
 def load_prompt(prompt_path: Optional[str]) -> str:
@@ -206,14 +205,19 @@ def process_with_openrouter_backoff(
     max_tokens: int = 4000,
     verbose: bool = False,
     timeout: int = 120,
+    fallback_model: Optional[str] = None,
 ) -> str:
     """
-    Process markdown content with OpenRouter API using retry mechanism.
+    Process markdown content with OpenRouter API using retry mechanism with fallback model.
 
-    Will retry 3 times in case of errors with 10 minutes sleep between attempts:
-    1. Wait 10 minutes and retry
-    2. Wait 10 minutes and retry  
-    3. Wait 10 minutes and retry
+    Will retry 3 times with the primary model with progressive delays optimized for rate limits:
+    1. Immediate retry (0s delay)
+    2. Wait 30 seconds and retry
+    3. Wait 60 seconds and retry  
+    4. Wait 120 seconds and retry
+    
+    If all retries with the primary model fail and a fallback model is provided,
+    it will attempt to use the fallback model as a last resort.
 
     Args:
         markdown_content: Markdown content to process
@@ -223,6 +227,7 @@ def process_with_openrouter_backoff(
         max_tokens: Maximum tokens for response
         verbose: Enable debug output for API requests
         timeout: API request timeout in seconds
+        fallback_model: Fallback model to use if primary model fails (optional)
 
     Returns:
         JSON response from OpenRouter API
@@ -233,15 +238,23 @@ def process_with_openrouter_backoff(
     """
     logger = logging.getLogger(__name__)
     max_retries = 3
-    sleep_time = 10 * 60  # 10 minutes in seconds
+    # Progressive retry delays: 0s, 30s, 60s, 120s (better for rate limits)
+    retry_delays = [0, 30, 60, 120]  # seconds
+    
+    # Determine the primary model to use
+    primary_model = model or os.getenv("DEFAULT_MODEL")
+    if not primary_model:
+        raise ValueError(
+            "Model must be specified either as parameter or DEFAULT_MODEL environment variable"
+        )
 
-    # First attempt
+    # First attempt with primary model
     try:
-        logger.info("OpenRouter request - first attempt")
+        logger.info(f"OpenRouter request - first attempt with model: {primary_model}")
         response = process_with_openrouter(
             markdown_content,
             prompt_path,
-            model,
+            primary_model,
             temperature,
             max_tokens,
             verbose,
@@ -264,17 +277,22 @@ def process_with_openrouter_backoff(
     ) as e:
         logger.warning(f"OpenRouter request failed on first attempt: {e}")
 
-    # Retry attempts with 10 minute sleep
+    # Retry attempts with primary model and progressive delays
+    last_exception = None
     for attempt in range(max_retries):
-        logger.info(f"Waiting {sleep_time/60:.0f} minutes before retry #{attempt+1}...")
-        time.sleep(sleep_time)
+        delay = retry_delays[attempt + 1]  # Skip first delay (0s) since we already tried
+        if delay > 0:
+            logger.info(f"Waiting {delay} seconds before retry #{attempt+1}...")
+            time.sleep(delay)
+        else:
+            logger.info(f"Immediate retry #{attempt+1} (no delay)")
 
         try:
-            logger.info(f"OpenRouter retry attempt #{attempt+1}")
+            logger.info(f"OpenRouter retry attempt #{attempt+1} with model: {primary_model}")
             response = process_with_openrouter(
                 markdown_content,
                 prompt_path,
-                model,
+                primary_model,
                 temperature,
                 max_tokens,
                 verbose,
@@ -289,10 +307,7 @@ def process_with_openrouter_backoff(
             else:
                 error_msg = "Empty or invalid content in OpenRouter response"
                 logger.warning(f"{error_msg} on retry #{attempt+1}")
-                
-                if attempt == max_retries - 1:
-                    logger.error("Maximum retries reached, OpenRouter request failed")
-                    raise ValueError(error_msg)
+                last_exception = ValueError(error_msg)
 
         except (
             requests.RequestException,
@@ -300,10 +315,51 @@ def process_with_openrouter_backoff(
             json.JSONDecodeError,
         ) as e:
             logger.warning(f"OpenRouter request failed on retry #{attempt+1}: {e}")
-            
-            if attempt == max_retries - 1:
-                logger.error(f"All {max_retries + 1} OpenRouter attempts failed")
-                raise
+            last_exception = e
 
-    # This should never be reached due to the exception in the last iteration
-    raise RuntimeError("Unexpected end of OpenRouter retry loop")
+    # All retries with primary model failed, try fallback model if available
+    if fallback_model and fallback_model != primary_model:
+        logger.warning(f"All attempts with primary model '{primary_model}' failed")
+        logger.info(f"Attempting fallback to model: {fallback_model}")
+        
+        try:
+            response = process_with_openrouter(
+                markdown_content,
+                prompt_path,
+                fallback_model,
+                temperature,
+                max_tokens,
+                verbose,
+                timeout,
+            )
+
+            # Parse response to check if it's valid
+            response_json = json.loads(response)
+            if is_valid_openrouter_response(response_json):
+                logger.info(f"OpenRouter request successful with fallback model: {fallback_model}")
+                return cast(str, response)
+            else:
+                error_msg = "Empty or invalid content in OpenRouter response from fallback model"
+                logger.error(error_msg)
+                raise ValueError(error_msg)
+
+        except (
+            requests.RequestException,
+            ValueError,
+            json.JSONDecodeError,
+        ) as e:
+            logger.error(f"Fallback model '{fallback_model}' also failed: {e}")
+            # Raise the last exception from the primary model attempts
+            if last_exception:
+                raise last_exception
+            raise e
+    else:
+        if fallback_model == primary_model:
+            logger.warning("Fallback model is the same as primary model, skipping fallback attempt")
+        elif not fallback_model:
+            logger.warning("No fallback model configured")
+        
+        logger.error(f"All {max_retries + 1} OpenRouter attempts failed with model '{primary_model}'")
+        if last_exception:
+            raise last_exception
+        raise RuntimeError("Unexpected end of OpenRouter retry loop")

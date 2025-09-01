@@ -8,7 +8,6 @@ import os
 import logging
 import time
 from typing import Optional, cast
-from .retry import retry_on_failure
 
 
 def validate_date_format(date: str) -> None:

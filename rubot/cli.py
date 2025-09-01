@@ -416,6 +416,7 @@ def _process_with_llm(
         max_tokens,
         logger.level <= logging.DEBUG,  # Use debug flag from logger
         app_config.openrouter_timeout,
+        app_config.fallback_model,  # Pass fallback model from config
     )
     return str(result)
 
