@@ -43,6 +43,8 @@ _Automatisiere die Extraktion und Analyse der offiziellen städtischen Ankündig
 - ⚡ **Dual-OCR-Engine-Support** (EasyOCR + Tesseract) mit Runtime-Auswahl
 - 📊 **Strukturierte JSON-Ausgabe** mit verbesserter Datenextraktion
 - 💾 **Intelligentes Multi-Level-Caching** (PDF + Markdown + Modelle)
+- 🔄 **Intelligente Wiederholungslogik** mit progressiven Verzögerungen für Rate-Limits
+- 🛡️ **Fallback-Modell-Support** für automatische Ausfallsicherheit bei Modellausfällen
 - 🐳 **Optimierter Docker-Support** mit vorinstallierten Modellen für sofortigen Start
 - 🔄 **Robuste Fehlerbehandlung** mit automatischen Fallback-Mechanismen
 - 📝 **Flexible Konfiguration** für verschiedene Anwendungsfälle und Umgebungen
@@ -189,6 +191,9 @@ export DOCLING_IMAGE_PLACEHOLDER="<!-- image -->"
 OPENROUTER_API_KEY=ihr_openrouter_api_schlüssel_hier
 DEFAULT_MODEL=ihr_bevorzugtes_modell_hier
 
+# 🛡️ Fallback-Modell (optional, aber empfohlen)
+FALLBACK_MODEL=openai/gpt-3.5-turbo
+
 # 💬 System-Prompt (erforderlich - wählen Sie einen)
 DEFAULT_SYSTEM_PROMPT="Analysieren Sie den folgenden Rathaus-Umschau-Inhalt..."
 # ODER eine Prompt-Datei verwenden:
@@ -303,6 +308,54 @@ DEFAULT_SYSTEM_PROMPT="Analysiere das Dokument..." rubot --date 2024-01-15
 - 🚀 **Schneller Fehlschlag**: Keine Zeit mit PDF-Downloads verschwendet
 - 🐳 **Docker-freundlich**: Erkennt Volume-Mount-Probleme frühzeitig
 - 🔍 **Klare Fehlermeldungen**: Zeigt genau welche Datei fehlt
+
+## 🔄 Wiederholungslogik und Fallback-Modelle
+
+### 🎯 Progressive Wiederholungsstrategie
+
+rubot implementiert eine intelligente Wiederholungsstrategie, die für OpenRouter API Rate-Limits optimiert ist:
+
+1. **Sofortiger Wiederholungsversuch** (0 Sekunden Verzögerung) - für vorübergehende Netzwerkfehler
+2. **30 Sekunden warten** und wiederholen - erste Rate-Limit-Verzögerung
+3. **60 Sekunden warten** und wiederholen - progressive Verzögerung
+4. **120 Sekunden warten** und wiederholen - letzter Versuch mit primärem Modell
+5. **Fallback-Modell versuchen** (falls konfiguriert) - automatische Ausfallsicherheit
+
+**Gesamte Wiederholungszeit**: ~3,5 Minuten vor Fallback (vs. 30+ Minuten mit festen Verzögerungen)
+
+### 🛡️ Fallback-Modell-Konfiguration
+
+Konfigurieren Sie ein Backup-Modell für hohe Verfügbarkeit:
+
+```bash
+# Primäres Modell (erforderlich)
+DEFAULT_MODEL=moonshotai/kimi-k2:free
+
+# Fallback-Modell (optional, aber empfohlen)
+FALLBACK_MODEL=openai/gpt-3.5-turbo
+```
+
+**Vorteile:**
+- **🛡️ Ausfallsicherheit**: Automatische Ausfallsicherheit bei Ausfall oder Rate-Limiting des primären Modells
+- **💰 Kostenoptimierung**: Teures primäres Modell, günstiges Fallback verwenden
+- **🌐 Anbietervielfalt**: Reduzierung der Abhängigkeit von einem einzigen Anbieter
+- **⚡ Null Ausfallzeit**: Nahtloser Wechsel ohne Benutzereingriff
+
+### 📋 Beispiel-Wiederholungsablauf
+
+```
+11:08:00 - Primäres Modell fehlgeschlagen: Rate-Limit überschritten
+11:08:00 - Sofortiger Wiederholungsversuch #1 (keine Verzögerung)
+11:08:00 - Wiederholung #1 fehlgeschlagen: Rate-Limit überschritten  
+11:08:00 - Warte 30 Sekunden vor Wiederholung #2...
+11:08:30 - Wiederholung #2 fehlgeschlagen: Rate-Limit überschritten
+11:08:30 - Warte 60 Sekunden vor Wiederholung #3...
+11:09:30 - Wiederholung #3 fehlgeschlagen: Rate-Limit überschritten
+11:09:30 - Warte 120 Sekunden vor Wiederholung #4...
+11:11:30 - Alle Versuche mit primärem Modell fehlgeschlagen
+11:11:30 - Versuche Fallback auf Modell: openai/gpt-3.5-turbo
+11:11:32 - ERFOLG mit Fallback-Modell!
+```
 
 ## 🐳 Docker-Verwendung
 

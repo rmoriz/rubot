@@ -90,6 +90,9 @@ pip install -e .
 OPENROUTER_API_KEY=your_openrouter_api_key_here
 DEFAULT_MODEL=your_preferred_model_here
 
+# 🛡️ Fallback Model (Optional but recommended)
+FALLBACK_MODEL=openai/gpt-3.5-turbo
+
 # 💬 System Prompt (Required - choose one)
 DEFAULT_SYSTEM_PROMPT="Analyze the following Rathaus-Umschau content..."
 # OR use a prompt file:
@@ -192,6 +195,54 @@ DEFAULT_SYSTEM_PROMPT="Analyze the document..." rubot --date 2024-01-15
 - 🚀 **Fast failure**: No time wasted downloading PDFs
 - 🐳 **Docker-friendly**: Catches volume mount issues early
 - 🔍 **Clear error messages**: Shows exactly which file is missing
+
+## Retry Logic and Fallback Models
+
+### Progressive Retry Strategy
+
+rubot implements an intelligent retry strategy optimized for OpenRouter API rate limits:
+
+1. **Immediate retry** (0 seconds delay) - for transient network errors
+2. **Wait 30 seconds** and retry - initial rate limit backoff
+3. **Wait 60 seconds** and retry - progressive backoff
+4. **Wait 120 seconds** and retry - final attempt with primary model
+5. **Try fallback model** (if configured) - automatic failover
+
+**Total retry time**: ~3.5 minutes before fallback (vs. 30+ minutes with fixed delays)
+
+### Fallback Model Configuration
+
+Configure a backup model for high availability:
+
+```bash
+# Primary model (required)
+DEFAULT_MODEL=moonshotai/kimi-k2:free
+
+# Fallback model (optional but recommended)
+FALLBACK_MODEL=openai/gpt-3.5-turbo
+```
+
+**Benefits:**
+- **Resilience**: Automatic failover when primary model is down or rate-limited
+- **Cost optimization**: Use expensive primary model, cheap fallback
+- **Vendor diversity**: Reduce dependency on single provider
+- **Zero downtime**: Seamless switching without user intervention
+
+### Example Retry Flow
+
+```
+11:08:00 - Primary model failed: rate limit exceeded
+11:08:00 - Immediate retry #1 (no delay)
+11:08:00 - Retry #1 failed: rate limit exceeded  
+11:08:00 - Waiting 30 seconds before retry #2...
+11:08:30 - Retry #2 failed: rate limit exceeded
+11:08:30 - Waiting 60 seconds before retry #3...
+11:09:30 - Retry #3 failed: rate limit exceeded
+11:09:30 - Waiting 120 seconds before retry #4...
+11:11:30 - All primary model attempts failed
+11:11:30 - Attempting fallback to model: openai/gpt-3.5-turbo
+11:11:32 - SUCCESS with fallback model!
+```
 
 ## 🐳 Docker Usage
 
