@@ -8,7 +8,7 @@ import os
 import logging
 import time
 from pathlib import Path
-from typing import Optional, Dict, Any, cast, Union
+from typing import Optional, Dict, Any, cast
 
 
 def load_prompt(prompt_path: Optional[str]) -> str:
@@ -32,7 +32,8 @@ def load_prompt(prompt_path: Optional[str]) -> str:
 
     # No default prompt - require explicit configuration
     raise ValueError(
-        "System prompt must be specified either via prompt file or DEFAULT_SYSTEM_PROMPT environment variable"
+        "System prompt must be specified either via prompt file or "
+        "DEFAULT_SYSTEM_PROMPT environment variable"
     )
 
 
@@ -72,7 +73,8 @@ def process_with_openrouter(
         model = os.getenv("DEFAULT_MODEL")
         if not model:
             raise ValueError(
-                "Model must be specified either as parameter or DEFAULT_MODEL environment variable"
+                "Model must be specified either as parameter or "
+                "DEFAULT_MODEL environment variable"
             )
 
     # Load system prompt
@@ -210,12 +212,13 @@ def process_with_openrouter_backoff(
     """
     Process markdown content with OpenRouter API using retry mechanism with fallback model.
 
-    Will retry 3 times with the primary model with progressive delays optimized for rate limits:
+    Will retry 3 times with the primary model with progressive delays
+    optimized for rate limits:
     1. Immediate retry (0s delay)
     2. Wait 30 seconds and retry
-    3. Wait 60 seconds and retry  
+    3. Wait 60 seconds and retry
     4. Wait 120 seconds and retry
-    
+
     If all retries with the primary model fail and a fallback model is provided,
     it will attempt to use the fallback model as a last resort.
 
@@ -227,7 +230,7 @@ def process_with_openrouter_backoff(
         max_tokens: Maximum tokens for response
         verbose: Enable debug output for API requests
         timeout: API request timeout in seconds
-        fallback_model: Fallback model to use if primary model fails (optional)
+        fallback_model: Fallback model to use if primary model fails
 
     Returns:
         JSON response from OpenRouter API
@@ -240,17 +243,20 @@ def process_with_openrouter_backoff(
     max_retries = 3
     # Progressive retry delays: 0s, 30s, 60s, 120s (better for rate limits)
     retry_delays = [0, 30, 60, 120]  # seconds
-    
+
     # Determine the primary model to use
     primary_model = model or os.getenv("DEFAULT_MODEL")
     if not primary_model:
         raise ValueError(
-            "Model must be specified either as parameter or DEFAULT_MODEL environment variable"
+            "Model must be specified either as parameter or "
+            "DEFAULT_MODEL environment variable"
         )
 
     # First attempt with primary model
     try:
-        logger.info(f"OpenRouter request - first attempt with model: {primary_model}")
+        logger.info(
+            f"OpenRouter request - first attempt with model: {primary_model}"
+        )
         response = process_with_openrouter(
             markdown_content,
             prompt_path,
@@ -280,15 +286,19 @@ def process_with_openrouter_backoff(
     # Retry attempts with primary model and progressive delays
     last_exception: Optional[Exception] = None
     for attempt in range(max_retries):
-        delay = retry_delays[attempt + 1]  # Skip first delay (0s) since we already tried
+        delay = retry_delays[attempt + 1]  # Skip first delay (0s)
         if delay > 0:
-            logger.info(f"Waiting {delay} seconds before retry #{attempt+1}...")
+            logger.info(
+                f"Waiting {delay} seconds before retry #{attempt+1}..."
+            )
             time.sleep(delay)
         else:
             logger.info(f"Immediate retry #{attempt+1} (no delay)")
 
         try:
-            logger.info(f"OpenRouter retry attempt #{attempt+1} with model: {primary_model}")
+            logger.info(
+                f"OpenRouter retry attempt #{attempt+1} with model: {primary_model}"
+            )
             response = process_with_openrouter(
                 markdown_content,
                 prompt_path,
@@ -319,8 +329,11 @@ def process_with_openrouter_backoff(
 
     # All retries with primary model failed, try fallback model if available
     if fallback_model and fallback_model != primary_model:
-        logger.warning(f"All attempts with primary model '{primary_model}' failed")
+        logger.warning(
+            f"All attempts with primary model '{primary_model}' failed"
+        )
         logger.info(f"Attempting fallback to model: {fallback_model}")
+
         
         try:
             response = process_with_openrouter(
@@ -336,10 +349,15 @@ def process_with_openrouter_backoff(
             # Parse response to check if it's valid
             response_json = json.loads(response)
             if is_valid_openrouter_response(response_json):
-                logger.info(f"OpenRouter request successful with fallback model: {fallback_model}")
+                logger.info(
+                    f"OpenRouter request successful with fallback model: {fallback_model}"
+                )
                 return cast(str, response)
             else:
-                error_msg = "Empty or invalid content in OpenRouter response from fallback model"
+                error_msg = (
+                    "Empty or invalid content in OpenRouter response "
+                    "from fallback model"
+                )
                 logger.error(error_msg)
                 raise ValueError(error_msg)
 
@@ -355,11 +373,17 @@ def process_with_openrouter_backoff(
             raise e
     else:
         if fallback_model == primary_model:
-            logger.warning("Fallback model is the same as primary model, skipping fallback attempt")
+            logger.warning(
+                "Fallback model is the same as primary model, "
+                "skipping fallback attempt"
+            )
         elif not fallback_model:
             logger.warning("No fallback model configured")
-        
-        logger.error(f"All {max_retries + 1} OpenRouter attempts failed with model '{primary_model}'")
+
+        logger.error(
+            f"All {max_retries + 1} OpenRouter attempts failed "
+            f"with model '{primary_model}'"
+        )
         if last_exception:
             raise last_exception
         raise RuntimeError("Unexpected end of OpenRouter retry loop")
