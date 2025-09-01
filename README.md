@@ -192,7 +192,7 @@ OPENROUTER_API_KEY=ihr_openrouter_api_schlüssel_hier
 DEFAULT_MODEL=ihr_bevorzugtes_modell_hier
 
 # 🛡️ Fallback-Modell (optional, aber empfohlen)
-FALLBACK_MODEL=openai/gpt-3.5-turbo
+FALLBACK_MODEL=deepseek-r1-0528:free
 
 # 💬 System-Prompt (erforderlich - wählen Sie einen)
 DEFAULT_SYSTEM_PROMPT="Analysieren Sie den folgenden Rathaus-Umschau-Inhalt..."
@@ -332,7 +332,7 @@ Konfigurieren Sie ein Backup-Modell für hohe Verfügbarkeit:
 DEFAULT_MODEL=moonshotai/kimi-k2:free
 
 # Fallback-Modell (optional, aber empfohlen)
-FALLBACK_MODEL=openai/gpt-3.5-turbo
+FALLBACK_MODEL=deepseek-r1-0528:free
 ```
 
 **Vorteile:**
@@ -353,7 +353,7 @@ FALLBACK_MODEL=openai/gpt-3.5-turbo
 11:09:30 - Wiederholung #3 fehlgeschlagen: Rate-Limit überschritten
 11:09:30 - Warte 120 Sekunden vor Wiederholung #4...
 11:11:30 - Alle Versuche mit primärem Modell fehlgeschlagen
-11:11:30 - Versuche Fallback auf Modell: openai/gpt-3.5-turbo
+11:11:30 - Versuche Fallback auf Modell: deepseek-r1-0528:free
 11:11:32 - ERFOLG mit Fallback-Modell!
 ```
 
@@ -428,7 +428,7 @@ rubot funktioniert mit **jedem OpenRouter-kompatiblen Modell**. Wählen Sie basi
 | Modell                    | Anbieter    | Beste für                  | Kosten    |
 | ------------------------- | ----------- | -------------------------- | --------- |
 | `moonshotai/kimi-k2:free` | Moonshot AI | 📝 Textanalyse, Nachdenken | Kostenlos |
-| `x-ai/grok-3-mini`        | xAI         | 🎯 Schnell, zuverlässig    | Billig    |
+| `deepseek-r1-0528:free`   | DeepSeek    | 🎯 Schnell, zuverlässig    | Kostenlos |
 
 > 💡 **Tipp**: Starten Sie mit dem kostenlosen `moonshotai/kimi-k2:free` für Textanalyse.
 
