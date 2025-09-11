@@ -44,7 +44,7 @@ jobs:
       
       - name: Test with pytest
         run: |
-          pytest tests/test_simple.py tests/test_models.py tests/test_retry.py tests/test_docling_converter.py tests/test_config.py tests/test_cli.py tests/test_integration.py -v --cov=rubot --cov-report=xml -m "not integration_real_api"
+          pytest tests/ -v --cov=rubot --cov-report=xml -m "not integration_real_api"
         env:
           PYTHONWARNINGS: "ignore::UserWarning"
       
