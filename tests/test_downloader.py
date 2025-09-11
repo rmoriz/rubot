@@ -11,6 +11,7 @@ from unittest.mock import patch, MagicMock, call
 from rubot.downloader import (
     download_pdf,
     download_pdf_with_backoff,
+    download_pdf_with_short_retries,
     generate_pdf_url,
     validate_date_format,
     validate_pdf_url,
@@ -116,7 +117,7 @@ class TestDownloader:
 
         assert result == "/tmp/test.pdf"
         assert mock_download.call_count == 2
-        mock_sleep.assert_called_once_with(10 * 60)  # 10 minutes
+        mock_sleep.assert_called_once_with(30)  # 30 seconds (default base_delay)
 
     @patch("rubot.downloader.download_pdf")
     @patch("time.sleep")
@@ -131,15 +132,51 @@ class TestDownloader:
         assert result is None
         assert mock_download.call_count == 5  # Initial + 4 retries
         assert mock_sleep.call_count == 4
-        # Verify exponential backoff sleep times
+        # Verify exponential backoff sleep times (30s base)
         mock_sleep.assert_has_calls(
             [
-                call(10 * 60),  # 10 minutes
-                call(20 * 60),  # 20 minutes
-                call(40 * 60),  # 40 minutes
-                call(80 * 60),  # 80 minutes
+                call(30),  # 30 seconds
+                call(60),  # 1 minute
+                call(120),  # 2 minutes
+                call(240),  # 4 minutes
             ]
         )
+
+    @patch("rubot.downloader.download_pdf")
+    @patch("time.sleep")
+    def test_download_pdf_with_backoff_custom_params(
+        self, mock_sleep, mock_download
+    ):
+        """Test backoff with custom parameters"""
+        mock_download.side_effect = [
+            FileNotFoundError("PDF not found"),
+            "/tmp/test.pdf",
+        ]
+
+        result = download_pdf_with_backoff(
+            "2024-01-15", timeout=60, max_retries=2, base_delay=120
+        )
+
+        assert result == "/tmp/test.pdf"
+        assert mock_download.call_count == 2
+        mock_sleep.assert_called_once_with(120)  # Custom base delay
+
+    @patch("rubot.downloader.download_pdf")
+    @patch("time.sleep")
+    def test_download_pdf_with_short_retries(
+        self, mock_sleep, mock_download
+    ):
+        """Test short retries function"""
+        mock_download.side_effect = [
+            FileNotFoundError("PDF not found"),
+            "/tmp/test.pdf",
+        ]
+
+        result = download_pdf_with_short_retries("2024-01-15")
+
+        assert result == "/tmp/test.pdf"
+        assert mock_download.call_count == 2
+        mock_sleep.assert_called_once_with(30)  # 30 seconds base delay
 
     @patch("rubot.downloader.download_pdf")
     @patch("time.sleep")

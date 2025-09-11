@@ -85,6 +85,11 @@ Issues: {_issues}""",
     is_flag=True,
     help="Skip automatic cache cleanup (env: SKIP_CLEANUP=1)",
 )
+@click.option(
+    "--long-pdf-retries",
+    is_flag=True,
+    help="Use long retry intervals for PDF downloads (10+ minutes, env: USE_LONG_PDF_RETRIES=1)",
+)
 def main(
     date: Optional[str],
     output: Optional[str],
@@ -98,6 +103,7 @@ def main(
     verbose: bool,
     cache_cleanup_days: Optional[int],
     skip_cleanup: bool,
+    long_pdf_retries: bool,
 ) -> None:
     """Command implementation - see help text for details."""
     logger = setup_logger(level="DEBUG" if verbose else None)
@@ -106,6 +112,10 @@ def main(
 
     try:
         app_config = _load_and_validate_config(config, logger)
+        
+        # Override long_pdf_retries if CLI flag is set
+        if long_pdf_retries:
+            app_config.use_long_pdf_retries = True
         cache_root = (
             cache_dir
             or app_config.cache_dir
@@ -273,9 +283,25 @@ def _download_pdf_with_cache(
 
     logger.info("PDF Cache MISS: Downloading...")
     try:
-        downloaded_path: Optional[str] = download_pdf_with_backoff(
-            date, app_config.request_timeout
-        )
+        # Use configurable retry settings
+        downloaded_path: Optional[str]
+        if app_config.use_long_pdf_retries:
+            # Use long retries (10min+ intervals)
+            downloaded_path = download_pdf_with_backoff(
+                date, 
+                app_config.request_timeout, 
+                max_retries=app_config.pdf_download_max_retries,
+                base_delay=600  # 10 minutes
+            )
+        else:
+            # Use short retries (30s, 1min, 2min, 4min)
+            downloaded_path = download_pdf_with_backoff(
+                date, 
+                app_config.request_timeout,
+                max_retries=app_config.pdf_download_max_retries,
+                base_delay=app_config.pdf_download_base_delay
+            )
+        
         if downloaded_path is None:
             raise FileNotFoundError(
                 f"PDF for date {date} not available after multiple retries"

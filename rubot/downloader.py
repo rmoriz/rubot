@@ -130,16 +130,61 @@ def download_pdf(date: str, timeout: int = 30) -> str:
         raise OSError(f"Failed to write PDF file: {e}")
 
 
-def download_pdf_with_backoff(date: str, timeout: int = 30) -> Optional[str]:
+def download_pdf_with_backoff(
+    date: str, timeout: int = 30, max_retries: int = 4, base_delay: int = 30
+) -> Optional[str]:
     """
     Download PDF with exponential backoff retry mechanism.
 
-    When PDF is not available, retries with exponential backoff starting at 10 minutes:
-    1. Wait 10 minutes and retry
-    2. Wait 20 minutes and retry
-    3. Wait 40 minutes and retry
-    4. Wait 80 minutes and retry
+    Args:
+        date: Date string in YYYY-MM-DD format
+        timeout: Request timeout in seconds
+        max_retries: Maximum number of retry attempts (default: 4)
+        base_delay: Base delay in seconds for first retry (default: 30 seconds)
 
+    Returns:
+        Path to downloaded PDF file or None if all attempts failed
+    """
+    logger = logging.getLogger(__name__)
+
+    # Retry attempts with exponential backoff (including first attempt)
+    for attempt in range(max_retries + 1):
+        try:
+            result = download_pdf(date, timeout)
+            if attempt > 0:
+                logger.info(f"PDF successfully downloaded on attempt #{attempt+1}")
+            return cast(str, result)
+        except FileNotFoundError as e:
+            if attempt == 0:
+                logger.info(f"PDF not available on first attempt: {e}")
+            else:
+                logger.info(f"PDF still not available on attempt #{attempt+1}: {e}")
+            
+            if attempt == max_retries:
+                logger.error("Maximum retries reached, PDF not available")
+                return None
+            
+            # Wait before next retry
+            wait_time = base_delay * (2 ** attempt)
+            logger.info(
+                f"Waiting {wait_time/60:.1f} minutes before retry #{attempt+2}..."
+            )
+            time.sleep(wait_time)
+            
+        except (requests.RequestException, OSError) as e:
+            logger.error(f"Error downloading PDF on attempt #{attempt+1}: {e}")
+            return None
+
+    return None
+
+
+def download_pdf_with_short_retries(date: str, timeout: int = 30) -> Optional[str]:
+    """
+    Download PDF with shorter retry intervals suitable for automated/scheduled runs.
+    
+    Retries with shorter delays: 30s, 1min, 2min, 4min
+    Total retry time: ~7.5 minutes
+    
     Args:
         date: Date string in YYYY-MM-DD format
         timeout: Request timeout in seconds
@@ -147,38 +192,9 @@ def download_pdf_with_backoff(date: str, timeout: int = 30) -> Optional[str]:
     Returns:
         Path to downloaded PDF file or None if all attempts failed
     """
-    logger = logging.getLogger(__name__)
-    base_delay = 10 * 60  # Start with 10 minutes
-    max_retries = 4
-
-    # First attempt
-    try:
-        result = download_pdf(date, timeout)
-        return cast(str, result)
-    except FileNotFoundError as e:
-        logger.info(f"PDF not available on first attempt: {e}")
-    except (requests.RequestException, OSError) as e:
-        logger.error(f"Error downloading PDF: {e}")
-        return None
-
-    # Retry attempts with exponential backoff
-    for attempt in range(max_retries):
-        wait_time = base_delay * (2 ** attempt)  # 10min, 20min, 40min, 80min
-        logger.info(
-            f"Waiting {wait_time/60:.0f} minutes before retry #{attempt+1}..."
-        )
-        time.sleep(wait_time)
-
-        try:
-            result = download_pdf(date, timeout)
-            return cast(str, result)
-        except FileNotFoundError as e:
-            logger.info(f"PDF still not available on retry #{attempt+1}: {e}")
-            if attempt == max_retries - 1:
-                logger.error("Maximum retries reached, PDF not available")
-                return None
-        except (requests.RequestException, OSError) as e:
-            logger.error(f"Error downloading PDF on retry #{attempt+1}: {e}")
-            return None
-
-    return None
+    return download_pdf_with_backoff(
+        date=date, 
+        timeout=timeout, 
+        max_retries=4, 
+        base_delay=30  # 30 seconds base delay: 30s, 1min, 2min, 4min
+    )

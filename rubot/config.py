@@ -29,6 +29,11 @@ class RubotConfig:
     pdf_timeout: int = 600
     max_retries: int = 3
     retry_delay: float = 1.0
+    
+    # PDF download retry settings
+    pdf_download_max_retries: int = 4
+    pdf_download_base_delay: int = 30  # seconds, for short retries (30s, 1min, 2min, 4min)
+    use_long_pdf_retries: bool = False  # if True, uses 10min+ retries
 
     # Cache settings
     cache_enabled: bool = True
@@ -96,6 +101,10 @@ class RubotConfig:
             pdf_timeout=int(os.getenv("PDF_TIMEOUT", "600")),
             max_retries=int(os.getenv("MAX_RETRIES", "3")),
             retry_delay=float(os.getenv("RETRY_DELAY", "1.0")),
+            # PDF download retry settings
+            pdf_download_max_retries=int(os.getenv("PDF_DOWNLOAD_MAX_RETRIES", "4")),
+            pdf_download_base_delay=int(os.getenv("PDF_DOWNLOAD_BASE_DELAY", "30")),
+            use_long_pdf_retries=os.getenv("USE_LONG_PDF_RETRIES", "false").lower() == "true",
             cache_enabled=os.getenv("CACHE_ENABLED", "true").lower() == "true",
             cache_max_age_hours=int(os.getenv("CACHE_MAX_AGE_HOURS", "24")),
             max_pdf_pages=int(os.getenv("MAX_PDF_PAGES", "100")),
@@ -139,6 +148,9 @@ class RubotConfig:
             "pdf_timeout": self.pdf_timeout,
             "max_retries": self.max_retries,
             "retry_delay": self.retry_delay,
+            "pdf_download_max_retries": self.pdf_download_max_retries,
+            "pdf_download_base_delay": self.pdf_download_base_delay,
+            "use_long_pdf_retries": self.use_long_pdf_retries,
             "cache_enabled": self.cache_enabled,
             "cache_max_age_hours": self.cache_max_age_hours,
             "max_pdf_pages": self.max_pdf_pages,
