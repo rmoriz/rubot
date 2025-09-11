@@ -16,7 +16,7 @@ jobs:
   integration-test:
     runs-on: ubuntu-latest
     # Only run if we have the real API key secret
-    if: ${{ secrets.OPENROUTER_API_KEY_REAL }}
+    if: ${{ secrets.OPENROUTER_API_KEY_REAL != '' }}
     
     steps:
       - uses: actions/checkout@v4
